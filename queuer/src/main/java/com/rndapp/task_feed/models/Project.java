@@ -1,20 +1,22 @@
 package com.rndapp.task_feed.models;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
 import com.google.gson.Gson;
+import com.rndapp.task_feed.QueuerApplication;
 import com.rndapp.task_feed.api.ServerCommunicator;
-import com.rndapp.task_feed.async_tasks.UpdateTaskTask;
 import com.rndapp.task_feed.data.ProjectDataSource;
 import com.rndapp.task_feed.data.TaskDataSource;
+
 import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 
 /**
  * Created with IntelliJ IDEA.
@@ -57,7 +59,7 @@ public class Project implements Serializable{
         return output;
     }
 
-    public void addTaskToBeginning(Context context, Task task){
+    public void addTaskToBeginning(Context context, RequestQueue queue, Task task){
         TaskDataSource source = new TaskDataSource(context);
         source.open();
         task = source.createTask(task.getName(),
@@ -68,7 +70,17 @@ public class Project implements Serializable{
                 task.isFinished());
         source.close();
         tasks.add(0,task);
-        updatePositions(context);
+        updatePositions(context, queue, new Response.Listener() {
+            @Override
+            public void onResponse(Object o) {
+
+            }
+        }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError volleyError) {
+
+                    }
+                });
     }
 
     public void addTaskRespectingOrder(Context context, Task task){
@@ -85,7 +97,7 @@ public class Project implements Serializable{
         sortTasks();
     }
 
-    public void removeFirstTask(Context context){
+    public void removeFirstTask(Context context, RequestQueue queue){
         if (tasks.size() != 0){
             int indexOfTask = -1;
             for (Task task : tasks){
@@ -94,37 +106,47 @@ public class Project implements Serializable{
                     break;
                 }
             }
-            if (indexOfTask != -1) markTaskAtPositionAsFinished(context, indexOfTask);
+            if (indexOfTask != -1) markTaskAtPositionAsFinished(context, queue, indexOfTask);
         }
     }
 
-    public void markTaskAtPositionAsFinished(Context context, int position){
-        tasks.set(position, Task.markAsFinished(context, tasks.get(position)));
+    public void markTaskAtPositionAsFinished(Context context, RequestQueue queue, int position){
+        tasks.set(position, Task.markAsFinished(context, queue, tasks.get(position)));
     }
 
-    public void deleteTask(Context context, int position){
-        TaskDataSource source = new TaskDataSource(context);
-        source.open();
-        source.deleteTask(tasks.get(position));
-        source.close();
-        tasks.remove(position);
-        updatePositions(context);
-    }
+//    public void deleteTask(Context context, int position){
+//        TaskDataSource source = new TaskDataSource(context);
+//        source.open();
+//        source.deleteTask(tasks.get(position));
+//        source.close();
+//        tasks.remove(position);
+//        updatePositions(context);
+//    }
 
-    public void updateTask(Context context, Task task){
+    public void updateTask(Context context, RequestQueue queue, Task task,
+                           Response.Listener listener,
+                           Response.ErrorListener errorListener){
         if (task.getOrder() != tasks.indexOf(task)){
             task.setOrder(tasks.indexOf(task));
         }
         Task.updateTask(context, task);
-        updatePositions(context);
+        ServerCommunicator.updateTask(context,
+                queue,
+                task, listener, errorListener);
+        updatePositions(context, queue, listener, errorListener);
     }
 
-    private void updatePositions(Context context){
+    private void updatePositions(Context context, RequestQueue queue,
+                                 Response.Listener listener,
+                                 Response.ErrorListener errorListener){
         for (Task task : tasks){
             if (task.getOrder() != tasks.indexOf(task)){
                 task.setOrder(tasks.indexOf(task));
                 Task.updateTask(context, task);
-                new UpdateTaskTask(context, null).execute(task);
+
+                ServerCommunicator.updateTask(context,
+                        queue,
+                        task, listener, errorListener);
             }
         }
     }
@@ -148,42 +170,28 @@ public class Project implements Serializable{
         return tasks.size() == 0 || isHidden();
     }
 
-    public static Project uploadProjectToServer(Context context, Project project){
-        ServerCommunicator server = new ServerCommunicator(context);
-        HashMap<String, Object> hash = new HashMap<String, Object>();
-        hash.put("project",project);
-        Project newProject = new Project();
-        newProject.setColor(project.color);
-        newProject.setName(project.name);
-        try {
-            JSONObject jsonObject = new JSONObject(new Gson().toJson(hash));
-            SharedPreferences sp = context.getSharedPreferences(ActivityUtils.USER_ID_PREF, Activity.MODE_PRIVATE);
-            String json = server.postToEndpointAuthed("users/"+sp.getInt("user_id", 0)+"/projects",jsonObject);
-            newProject = new Gson().fromJson(json, Project.class);
-
-            for (Task task : project.getTasks()){
-                task.setProject_id(newProject.getId());
-                newProject.getTasks().add(Task.uploadTaskToServer(context, task));
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return newProject;
+    public boolean isUpToDateWithServerProject(Task serverProject){
+        return this.getUpdated_at().before(serverProject.getUpdated_at());
     }
 
-    public static Project updateProjectOnServer(Context context, Project project){
-        ServerCommunicator server = new ServerCommunicator(context);
-        HashMap<String, Object> hash = new HashMap<String, Object>();
-        hash.put("project",project);
-        try {
-            JSONObject jsonObject = new JSONObject(new Gson().toJson(hash));
-            SharedPreferences sp = context.getSharedPreferences(ActivityUtils.USER_ID_PREF, Activity.MODE_PRIVATE);
-            server.postToEndpointAuthed(
-                    "users/"+sp.getInt("user_id", 0)+"/projects/"+project.getId(), jsonObject);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return project;
+    public static void uploadProjectToServer(Context context, RequestQueue queue, Project project,
+                                             Response.Listener listener,
+                                             Response.ErrorListener errorListener){
+
+            ServerCommunicator.uploadProjectToServer(context, project, queue,
+                    listener,
+                    errorListener);
+    }
+
+    public static void updateProjectOnServer(Context context, RequestQueue queue, Project project,
+                                             Response.Listener listener,
+                                             Response.ErrorListener errorListener){
+            ServerCommunicator.updateProjectOnServer(context,
+                    project,
+                    queue,
+                    listener,
+                    errorListener
+            );
     }
 
     public static Project addProjectToDatabase(Context context, Project project){

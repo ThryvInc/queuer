@@ -21,4 +21,8 @@
     <string name="item_deleted">Item deleted</string>
     <string name="n_items_deleted">%1$s items deleted</string>
 
+    <!-- EnhancedListView -->
+    <string name="drawer_open">Open Drawer</string>
+    <string name="drawer_close">Close Drawer</string>
+
 </resources>

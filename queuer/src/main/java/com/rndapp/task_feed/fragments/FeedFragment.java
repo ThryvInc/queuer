@@ -15,6 +15,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.google.gson.Gson;
+import com.rndapp.task_feed.QueuerApplication;
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.activities.LoginActivity;
 import com.rndapp.task_feed.adapters.ProjectListAdapter;
@@ -23,7 +28,10 @@ import com.rndapp.task_feed.interfaces.ProjectDisplayer;
 import com.rndapp.task_feed.listeners.SwipeDismissListViewTouchListener;
 import com.rndapp.task_feed.models.ActivityUtils;
 import com.rndapp.task_feed.models.Project;
+import com.rndapp.task_feed.models.Task;
 import com.rndapp.task_feed.views.EnhancedListView;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -124,7 +132,7 @@ public class FeedFragment extends Fragment {
     }
 
     public void removeItemFromProject(int position){
-        projects.get(position).removeFirstTask(getActivity());
+        projects.get(position).removeFirstTask(getActivity(), ((QueuerApplication)getActivity().getApplication()).getRequestQueue());
     }
 
     private class RemoveItemTask extends AsyncTask<Integer, String, Object> {
@@ -216,7 +224,26 @@ public class FeedFragment extends Fragment {
                 .setPositiveButton("Ok",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                new UploadNewProjectTask().execute(taskTitle.getText().toString());
+                                Project.uploadProjectToServer(getActivity(),
+                                        ((QueuerApplication) getActivity().getApplication()).getRequestQueue(),
+                                        new Project(taskTitle.getText().toString(), swatchColor),
+                                        new Response.Listener<JSONObject>() {
+                                            @Override
+                                            public void onResponse(JSONObject o) {
+                                                Project project = new Gson().fromJson(o.toString(), Project.class);
+                                                project = Project.addProjectToDatabase(getActivity(), project);
+                                                projects.add(project);
+                                                delegate.setupNav(null);
+                                                ((ActionBarActivity)getActivity()).getSupportActionBar().setSelectedNavigationItem(
+                                                        projects.indexOf(project) + 1);
+                                            }
+                                        },
+                                        new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError volleyError) {
+                                                //try again?
+                                            }
+                                        });
                             }
                         })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -224,25 +251,5 @@ public class FeedFragment extends Fragment {
                 });
         AlertDialog alertDialog = alertDialogBuilder.create();
         alertDialog.show();
-    }
-
-    private class UploadNewProjectTask extends AsyncTask<String, String, Project> {
-
-        //param[0] = project name
-        @Override
-        protected Project doInBackground(String... params) {
-            Project project = new Project(params[0],swatchColor);
-            project = Project.uploadProjectToServer(getActivity(), project);
-            project = Project.addProjectToDatabase(getActivity(), project);
-            projects.add(project);
-            return project;
-        }
-
-        @Override
-        protected void onPostExecute(Project project){
-            delegate.setupNav(null);
-            ((ActionBarActivity)getActivity()).getSupportActionBar().setSelectedNavigationItem(
-                    projects.indexOf(project) + 1);
-        }
     }
 }

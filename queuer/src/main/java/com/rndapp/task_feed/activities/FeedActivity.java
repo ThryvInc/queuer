@@ -1,34 +1,48 @@
 package com.rndapp.task_feed.activities;
 
+import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
-import android.support.v4.app.Fragment;
+import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
+
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.rndapp.task_feed.QueuerApplication;
 import com.rndapp.task_feed.R;
-import com.rndapp.task_feed.async_tasks.DownloadProjectsTask;
+import com.rndapp.task_feed.adapters.NavAdapter;
+import com.rndapp.task_feed.adapters.ProjectListAdapter;
 import com.rndapp.task_feed.broadcast_receivers.ListWidgetProvider;
-import com.rndapp.task_feed.fragments.FeedFragment;
-import com.rndapp.task_feed.fragments.ProjectFragment;
 import com.rndapp.task_feed.interfaces.ProjectDisplayer;
 import com.rndapp.task_feed.models.*;
+import com.rndapp.task_feed.views.EnhancedListView;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.List;
 
-public class FeedActivity extends ActionBarActivity implements
-		ActionBar.OnNavigationListener, ProjectDisplayer {
+public class FeedActivity extends ActionBarActivity implements ProjectDisplayer {
     private static final String TAG = "FeedActivity";
-    private ArrayList<Project> projects;
-
-	/**
-	 * The serialization (saved instance state) Bundle key representing the
-	 * current dropdown position.
-	 */
-	private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
+    private DrawerLayout drawerLayout;
+    private ListView drawerList;
+    private ActionBarDrawerToggle drawerToggle;
+    public ArrayList<Project> projects;
+    private ProjectListAdapter adapter;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -38,10 +52,121 @@ public class FeedActivity extends ActionBarActivity implements
         //load projects
         projects = ActivityUtils.loadProjectsFromDatabase(this);
 
+        setupForAsync();
+        ActivityUtils.downloadProjectsFromServer(this,
+                ((QueuerApplication)getApplication()).getRequestQueue(),
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray json) {
+                        Type listOfProjects = new TypeToken<List<Project>>() {}.getType();
+                        ArrayList<Project> serverProjects = new Gson().fromJson(json.toString(), listOfProjects);
+                        projects = ActivityUtils.syncProjectsWithServer(FeedActivity.this,
+                                ((QueuerApplication)getApplication()).getRequestQueue(),
+                                projects, serverProjects);
+                        setupNav(projects);
+                        asyncEnded();
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError volleyError) {
+                        volleyError.printStackTrace();
+                        asyncEnded();
+                    }
+                }
+        );
+
+        EnhancedListView lv = (EnhancedListView)findViewById(R.id.project_list_view);
+
+        adapter = new ProjectListAdapter(this, projects);
+
+        lv.setDismissCallback(new EnhancedListView.OnDismissCallback() {
+            /**
+             * This method will be called when the user swiped a way or deleted it via
+             * {@link EnhancedListView#delete(int)}.
+             *
+             * @param listView The {@link EnhancedListView} the item has been deleted from.
+             * @param position The position of the item to delete from your adapter.
+             * @return An {@link EnhancedListView.Undoable}, if you want
+             *      to give the user the possibility to undo the deletion.
+             */
+            @Override
+            public EnhancedListView.Undoable onDismiss(EnhancedListView listView, final int position) {
+                removeItemFromProject(adjustPosition(position));
+                adapter.notifyDataSetChanged();
+                return null;
+            }
+        });
+
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                startProjectActivity(projects.get(adjustPosition(position)));
+            }
+        });
+
+        lv.enableSwipeToDismiss();
+
+        lv.setAdapter(adapter);
+	}
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        //load projects
+        projects = ActivityUtils.loadProjectsFromDatabase(this);
+
         setupNav(null);
 
-        new DownloadProjectsTask(this, this).execute(projects);
-	}
+        adapter.setProjects(projects);
+    }
+
+    private void startProjectActivity(Project project){
+        Intent intent = new Intent(FeedActivity.this, ProjectActivity.class);
+        intent.putExtra(ProjectActivity.ARG_PROJECT, project);
+        startActivity(intent);
+    }
+
+    private int adjustPosition(int position){
+        int result = position;
+        for (int i = 0; i < result+1; i++){
+            if (projects.get(i).isEmpty() || projects.get(i).isHidden()){
+                result++;
+            }
+        }
+        return result;
+    }
+
+    public void removeItemFromProject(int position){
+        projects.get(position).removeFirstTask(this, ((QueuerApplication)getApplication()).getRequestQueue());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.feed, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Pass the event to ActionBarDrawerToggle, if it returns
+        // true, then it has handled the app icon touch event
+        if (drawerToggle.onOptionsItemSelected(item)) {
+            return true;
+        }
+        switch (item.getItemId()){
+            case R.id.action_add_project:
+                newProject();
+                break;
+            case R.id.action_logout:
+                ActivityUtils.logout(this);
+                break;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
 
     public void setupForAsync(){
         findViewById(R.id.loading_bar).setVisibility(View.VISIBLE);
@@ -59,69 +184,153 @@ public class FeedActivity extends ActionBarActivity implements
 
         // Set up the action bar to show a dropdown list.
         final ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayShowTitleEnabled(false);
-        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+        actionBar.setDisplayShowTitleEnabled(true);
 
-        //get titles
-        String[] dropdownTitles = new String[projects.size()+1];
+        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+        drawerList = (ListView) findViewById(R.id.left_drawer);
 
-        dropdownTitles[0] = "Feed";
-        for (int i = 0; i < projects.size(); i++){
-            dropdownTitles[i+1] = projects.get(i).getName();
-        }
+        drawerToggle = new ActionBarDrawerToggle(
+                this,                  /* host Activity */
+                drawerLayout,         /* DrawerLayout object */
+                R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
+                R.string.drawer_open,  /* "open drawer" description */
+                R.string.drawer_close  /* "close drawer" description */
+        ) {
 
-        // Set up the dropdown list navigation in the action bar.
-        actionBar.setListNavigationCallbacks(
-                // Specify a SpinnerAdapter to populate the dropdown list.
-                new ArrayAdapter<String>(actionBar.getThemedContext(),
-                        android.R.layout.simple_list_item_1,
-                        android.R.id.text1, dropdownTitles), this);
+            /** Called when a drawer has settled in a completely closed state. */
+            public void onDrawerClosed(View view) {
+                super.onDrawerClosed(view);
+                getSupportActionBar().setTitle(R.string.app_name);
+            }
 
-        asyncEnded();
+            /** Called when a drawer has settled in a completely open state. */
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+                getSupportActionBar().setTitle(R.string.app_name);
+            }
+        };
 
-        getSupportActionBar().setSelectedNavigationItem(0);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
+
+        drawerLayout.setDrawerListener(drawerToggle);
+
+        // Set the adapter for the list view
+        drawerList.setAdapter(new NavAdapter(this, projects));
+
+        // Set the list's click listener
+        drawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                drawerList.setItemChecked(position, true);
+                drawerLayout.closeDrawer(drawerList);
+                startProjectActivity(projects.get(position));
+            }
+        });
     }
 
-	@Override
-	public void onRestoreInstanceState(Bundle savedInstanceState) {
-		// Restore the previously serialized current dropdown position.
-		if (savedInstanceState.containsKey(STATE_SELECTED_NAVIGATION_ITEM)) {
-			getSupportActionBar().setSelectedNavigationItem(
-					savedInstanceState.getInt(STATE_SELECTED_NAVIGATION_ITEM));
-		}
-	}
+    int swatchColor;
+    public void newProject(){
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        // set title
+        alertDialogBuilder.setTitle("New Project");
 
-	@Override
-	public void onSaveInstanceState(Bundle outState) {
-		// Serialize the current dropdown position.
-		outState.putInt(STATE_SELECTED_NAVIGATION_ITEM, getSupportActionBar()
-                .getSelectedNavigationIndex());
-	}
+        View layout = getLayoutInflater().inflate(R.layout.new_project, null);
 
-	@Override
-	public boolean onNavigationItemSelected(int position, long id) {
-		// When the given dropdown item is selected, show its contents in the
-		// container view.
-        if (position == 0){
-            Fragment fragment1 = new FeedFragment();
-            ((FeedFragment)fragment1).delegate = this;
-            ((FeedFragment)fragment1).projects = projects;
-            switchFragBack(fragment1);
-        } else {
-            Fragment fragment3 = new ProjectFragment();
-            ((ProjectFragment)fragment3).delegate = this;
-            Bundle args2 = new Bundle();
-            args2.putSerializable(ProjectFragment.ARG_PROJECT, projects.get(position - 1));
-            fragment3.setArguments(args2);
-            switchFragBack(fragment3);
-        }
-        return true;
-    }
+        final EditText taskTitle = (EditText)layout.findViewById(R.id.projectName);
 
-    private void switchFragBack(Fragment frag){
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container, frag)
-                .addToBackStack(frag.getClass().getCanonicalName()).commit();
+        final View swatch = layout.findViewById(R.id.color_swatch);
+
+        Button btnRed = (Button)layout.findViewById(R.id.btn_red);
+        Button btnBlue = (Button)layout.findViewById(R.id.btn_blue);
+        Button btnPlum = (Button)layout.findViewById(R.id.btn_plum);
+        Button btnGold = (Button)layout.findViewById(R.id.btn_yellow);
+        Button btnOrange = (Button)layout.findViewById(R.id.btn_orange);
+        Button btnGreen = (Button)layout.findViewById(R.id.btn_green);
+        Button btnTurquoise = (Button)layout.findViewById(R.id.btn_turquoise);
+
+        View.OnClickListener listener = new View.OnClickListener() {
+            public void onClick(View v) {
+                switch (v.getId()){
+                    case R.id.btn_blue:
+                        swatchColor = getResources().getColor(R.color.blue);
+                        swatch.setBackgroundColor(getResources().getColor(R.color.blue));
+                        break;
+                    case R.id.btn_green:
+                        swatchColor = getResources().getColor(R.color.green);
+                        swatch.setBackgroundColor(getResources().getColor(R.color.green));
+                        break;
+                    case R.id.btn_orange:
+                        swatchColor = getResources().getColor(R.color.orange);
+                        swatch.setBackgroundColor(getResources().getColor(R.color.orange));
+                        break;
+                    case R.id.btn_plum:
+                        swatchColor = getResources().getColor(R.color.plum);
+                        swatch.setBackgroundColor(getResources().getColor(R.color.plum));
+                        break;
+                    case R.id.btn_red:
+                        swatchColor = getResources().getColor(R.color.red);
+                        swatch.setBackgroundColor(getResources().getColor(R.color.red));
+                        break;
+                    case R.id.btn_yellow:
+                        swatchColor = getResources().getColor(R.color.yellow);
+                        swatch.setBackgroundColor(getResources().getColor(R.color.yellow));
+                        break;
+                    case R.id.btn_turquoise:
+                        swatchColor = getResources().getColor(R.color.turquoise);
+                        swatch.setBackgroundColor(getResources().getColor(R.color.turquoise));
+                        break;
+                }
+            }
+        };
+
+        btnRed.setOnClickListener(listener);
+        btnBlue.setOnClickListener(listener);
+        btnOrange.setOnClickListener(listener);
+        btnGreen.setOnClickListener(listener);
+        btnGold.setOnClickListener(listener);
+        btnPlum.setOnClickListener(listener);
+        btnTurquoise.setOnClickListener(listener);
+
+        swatchColor = getResources().getColor(R.color.goldenrod);
+
+        // set dialog message
+        alertDialogBuilder
+                //.setMessage(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)))
+                .setCancelable(true)
+                .setView(layout)
+                .setPositiveButton("Ok",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                Project.uploadProjectToServer(FeedActivity.this,
+                                        ((QueuerApplication) getApplication()).getRequestQueue(),
+                                        new Project(taskTitle.getText().toString(), swatchColor),
+                                        new Response.Listener<JSONObject>() {
+                                            @Override
+                                            public void onResponse(JSONObject o) {
+                                                Project project = new Gson().fromJson(o.toString(), Project.class);
+                                                project = Project.addProjectToDatabase(getApplicationContext(), project);
+                                                projects.add(project);
+                                                setupNav(projects);
+                                                Intent intent = new Intent(FeedActivity.this, ProjectActivity.class);
+                                                intent.putExtra(ProjectActivity.ARG_PROJECT, project);
+                                                startActivity(intent);
+                                            }
+                                        },
+                                        new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError volleyError) {
+                                                //try again?
+                                            }
+                                        });
+                            }
+                        })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog,int id) {}
+                });
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
     }
 
     @Override

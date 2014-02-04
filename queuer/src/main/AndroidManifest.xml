@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".QueuerApplication"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
@@ -28,8 +29,12 @@
                 android:label="@string/app_name" >
         </activity>
         <activity
-                android:name="com.rndapp.task_feed.activities.CreateAccountActivity"
-                android:label="@string/create_account" >
+            android:name="com.rndapp.task_feed.activities.CreateAccountActivity"
+            android:label="@string/create_account" >
+        </activity>
+        <activity
+            android:name="com.rndapp.task_feed.activities.ProjectActivity"
+            android:label="@string/app_name" >
         </activity>
         <receiver android:icon="@drawable/cw"
                   android:label="@string/app_name"

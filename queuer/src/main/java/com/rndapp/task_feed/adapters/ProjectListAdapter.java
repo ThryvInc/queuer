@@ -31,6 +31,12 @@ public class ProjectListAdapter extends BaseAdapter implements RearrangementList
         removeEmptyProjects();
     }
 
+    public void setProjects(ArrayList<Project> projects){
+        this.projects = (ArrayList<Project>) projects.clone();
+        removeEmptyProjects();
+        notifyDataSetChanged();
+    }
+
     public void removeEmptyProjects(){
         for (Project project : projects){
             if (project.isEmpty() || project.isHidden()){

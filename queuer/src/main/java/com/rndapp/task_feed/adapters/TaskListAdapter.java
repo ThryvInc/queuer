@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 import com.rndapp.task_feed.R;
-import com.rndapp.task_feed.async_tasks.UpdateTaskTask;
 import com.rndapp.task_feed.interfaces.RearrangementListener;
 import com.rndapp.task_feed.interfaces.TaskDisplayer;
 import com.rndapp.task_feed.models.Task;

@@ -1,18 +1,15 @@
 package com.rndapp.task_feed.models;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
-import com.google.gson.Gson;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
 import com.rndapp.task_feed.api.ServerCommunicator;
-import com.rndapp.task_feed.async_tasks.UpdateTaskTask;
 import com.rndapp.task_feed.data.TaskDataSource;
-import com.rndapp.task_feed.interfaces.TaskDisplayer;
-import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
 
 /**
  * Created with IntelliJ IDEA.
@@ -44,44 +41,34 @@ public class Task implements Serializable, Comparable<Task>{
         return this.order - task.order;
     }
 
-    public static Task uploadTaskToServer(Context context, Task task){
-        ServerCommunicator server = new ServerCommunicator(context);
-        HashMap<String, Object> hash = new HashMap<String, Object>();
-        hash.put("task",task);
-        Task newTask = new Task();
-        try {
-            JSONObject jsonObject = new JSONObject(new Gson().toJson(hash));
-            SharedPreferences sp = context.getSharedPreferences(ActivityUtils.USER_ID_PREF, Activity.MODE_PRIVATE);
-            String json = server.postToEndpointAuthed("users/"+sp.getInt("user_id", 0)+"/projects/"+task.project_id+"/tasks",jsonObject);
-            newTask = new Gson().fromJson(json, Task.class);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return newTask;
+    public static void uploadTaskToServer(Context context,
+                                          RequestQueue queue,
+                                          Task task,
+                                          Response.Listener listener,
+                                          Response.ErrorListener errorListener){
+        ServerCommunicator.uploadTaskToServer(context, task, queue, listener, errorListener);
     }
 
-    public static Task markAsFinished(Context context, Task task){
+    public static Task markAsFinished(Context context, RequestQueue queue, Task task){
         task.setFinished(true);
-        new UpdateTaskTask(context, null).execute(task);
+        updateTaskOnServer(context, queue, task);
         updateTask(context, task);
         return task;
     }
 
-    public static Task updateTaskOnServer(Context context, Task task){
-        ServerCommunicator server = new ServerCommunicator(context);
-        HashMap<String, Object> hash = new HashMap<String, Object>();
-        hash.put("task",task);
-        try {
-            JSONObject jsonObject = new JSONObject(new Gson().toJson(hash));
-            SharedPreferences sp = context.getSharedPreferences(ActivityUtils.USER_ID_PREF, Activity.MODE_PRIVATE);
-            server.putToEndpointAuthed(
-                    "users/" + sp.getInt("user_id", 0) + "/projects/" + task.project_id + "/tasks/" + task.getId(),
-                    jsonObject);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+    public static Task updateTaskOnServer(Context context, RequestQueue queue, Task task){
+        ServerCommunicator.updateTask(context,
+                queue,
+                task,
+                new Response.Listener() {@Override public void onResponse(Object o) {}},
+                new Response.ErrorListener() {@Override public void onErrorResponse(VolleyError volleyError) {}});
+
         Task.updateTask(context, task);
         return task;
+    }
+
+    public boolean isUpToDateWithServerTask(Task serverTask){
+        return this.getUpdated_at().before(serverTask.getUpdated_at());
     }
 
     @Override

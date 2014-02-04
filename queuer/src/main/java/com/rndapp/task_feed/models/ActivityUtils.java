@@ -5,12 +5,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.rndapp.task_feed.activities.LoginActivity;
 import com.rndapp.task_feed.api.ServerCommunicator;
 import com.rndapp.task_feed.data.ProjectDataSource;
 import com.rndapp.task_feed.data.TaskDataSource;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -98,23 +106,15 @@ public class ActivityUtils {
         return projects;
     }
 
-    public static ArrayList<Project> downloadProjectsFromServer(Context context, ArrayList<Project> projects){
-        ArrayList<Project> serverProjects;
-        ServerCommunicator server = new ServerCommunicator(context);
-        try {
-            SharedPreferences sp = context.getSharedPreferences(ActivityUtils.USER_ID_PREF, Activity.MODE_PRIVATE);
-            String json = server.getEndpointAuthed("users/" + sp.getInt("user_id", 0) + "/projects");
-            Type listOfProjects = new TypeToken<List<Project>>(){}.getType();
-            serverProjects = new Gson().fromJson(json, listOfProjects);
-
-            projects = syncProjectsWithServer(context, projects, serverProjects);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return projects;
+    public static void downloadProjectsFromServer(final Context context,
+                                                                RequestQueue queue,
+                                                                Response.Listener<JSONArray> listener,
+                                                                Response.ErrorListener errorListener){
+        ServerCommunicator.downloadProjectsFromServer(context, queue, listener, errorListener);
     }
 
-    private static ArrayList<Project> syncProjectsWithServer(Context context,
+    public static ArrayList<Project> syncProjectsWithServer(Context context,
+                                                            RequestQueue queue,
                                                              ArrayList<Project> projects,
                                                              ArrayList<Project> serverProjects){
         for (Project project : projects){
@@ -126,7 +126,23 @@ public class ActivityUtils {
                     }
                 }
             }
-            if (!isOnServer) Project.uploadProjectToServer(context, project);
+            if (!isOnServer) {
+                final Project newProject = project;
+                Project.uploadProjectToServer(context, queue, project, new Response.Listener() {
+                            @Override
+                            public void onResponse(Object o) {
+                                //upload tasks
+                                for (Task task : newProject.getTasks()){
+                                    task.setProject_id(newProject.getId());
+                                }
+                            }
+                        }, new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError volleyError) {
+
+                            }
+                        });
+            }
         }
 
         if (serverProjects != null){
@@ -138,7 +154,7 @@ public class ActivityUtils {
                     if (project.equals(serverProject)){
                         isInDatabase = true;
                         indexOfProject = projects.indexOf(project);
-                        syncedProject = syncProjects(context, project, serverProject);
+                        syncedProject = syncProjects(context, queue, project, serverProject);
                     }
                 }
                 if (!isInDatabase) {
@@ -156,7 +172,7 @@ public class ActivityUtils {
         return projects;
     }
 
-    private static Project syncProjects(Context context, Project localProject, Project remoteProject){
+    private static Project syncProjects(Context context, RequestQueue queue, Project localProject, Project remoteProject){
         Project syncedProject = null;
         if (remoteProject == null){
             return localProject;
@@ -167,12 +183,12 @@ public class ActivityUtils {
         if (syncedProject.getName().equals("Tonight")){
             Log.d("Sync Project", syncedProject.getName());
         }
-        syncedProject.setTasks(syncTasks(context, localProject.getTasks(), remoteProject.getTasks()));
+        syncedProject.setTasks(syncTasks(context, queue, localProject.getTasks(), remoteProject.getTasks()));
         return syncedProject;
     }
 
-    private static ArrayList<Task> syncTasks(Context context, ArrayList<Task> localTasks, ArrayList<Task> remoteTasks){
-        ArrayList<Task> syncedTasks = new ArrayList<Task>();
+    private static ArrayList<Task> syncTasks(Context context, RequestQueue queue, ArrayList<Task> localTasks, ArrayList<Task> remoteTasks){
+        final ArrayList<Task> syncedTasks = new ArrayList<Task>();
         for (Task task : localTasks){
             boolean isOnServer = false;
             for (Task serverTask : remoteTasks){
@@ -186,7 +202,18 @@ public class ActivityUtils {
                 }
             }
             if (!isOnServer){
-                syncedTasks.add(Task.uploadTaskToServer(context, task));
+                Task.uploadTaskToServer(context, queue, task, new Response.Listener<JSONObject>() {
+                            @Override
+                            public void onResponse(JSONObject o) {
+                                syncedTasks.add(new Gson().fromJson(o.toString(), Task.class));
+                            }
+                        }, new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError volleyError) {
+
+                            }
+                        }
+                );
             }
         }
         return syncedTasks;

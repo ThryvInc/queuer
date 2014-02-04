@@ -1,17 +1,16 @@
-package com.rndapp.task_feed.fragments;
+package com.rndapp.task_feed.activities;
 
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.view.LayoutInflater;
+import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.*;
+import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.EditText;
 
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -20,7 +19,6 @@ import com.rndapp.task_feed.QueuerApplication;
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.adapters.TaskListAdapter;
 import com.rndapp.task_feed.api.ServerCommunicator;
-import com.rndapp.task_feed.interfaces.ProjectDisplayer;
 import com.rndapp.task_feed.interfaces.TaskDisplayer;
 import com.rndapp.task_feed.models.Project;
 import com.rndapp.task_feed.models.Task;
@@ -28,17 +26,10 @@ import com.rndapp.task_feed.views.EnhancedListView;
 
 import org.json.JSONObject;
 
-import java.lang.reflect.Field;
-
 /**
- * Created with IntelliJ IDEA.
- * User: ell
- * Date: 5/22/13
- * Time: 1:33 PM
- *
+ * Created by eschrock on 2/4/14.
  */
-public class ProjectFragment extends Fragment implements TaskDisplayer{
-    public ProjectDisplayer delegate;
+public class ProjectActivity extends ActionBarActivity implements TaskDisplayer {
     private Project project;
     private TaskListAdapter adapter;
     /**
@@ -47,30 +38,27 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
      */
     public static final String ARG_PROJECT = "project";
 
-    public ProjectFragment() {}
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }
+        setContentView(R.layout.activity_project);
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        project = (Project)getArguments().getSerializable(ARG_PROJECT);
+        project = (Project)getIntent().getExtras().getSerializable(ARG_PROJECT);
 
-        View rootView = inflater.inflate(R.layout.fragment_project, container, false);
+        getSupportActionBar().setTitle(project.getName());
+
+        View rootView = findViewById(R.id.project_root_view);
         rootView.setBackgroundColor(project.getColor());
 
         adapter = new TaskListAdapter(this, project.getTasks());
 
-        EnhancedListView lv = (EnhancedListView)rootView.findViewById(R.id.task_list_view);
+        EnhancedListView lv = (EnhancedListView)findViewById(R.id.task_list_view);
         lv.setAdapter(adapter);
 
         lv.setDismissCallback(new EnhancedListView.OnDismissCallback() {
             @Override
             public EnhancedListView.Undoable onDismiss(EnhancedListView listView, int position) {
-                project.markTaskAtPositionAsFinished(getActivity(), ((QueuerApplication)getActivity().getApplication()).getRequestQueue(), adjustPosition(position));
+                project.markTaskAtPositionAsFinished(ProjectActivity.this, ((QueuerApplication)getApplication()).getRequestQueue(), adjustPosition(position));
                 adapter.notifyDataSetChanged();
                 return null;
             }
@@ -83,8 +71,6 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
                 editTask(project.getTask(adjustPosition(position)));
             }
         });
-
-        return rootView;
     }
 
     private int adjustPosition(int position){
@@ -98,10 +84,10 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        inflater.inflate(R.menu.project, menu);
-        super.onCreateOptionsMenu(menu, inflater);
+        getMenuInflater().inflate(R.menu.project, menu);
+        return true;
     }
 
     @Override
@@ -123,11 +109,11 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
     }
 
     private void createNewTask(){
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         // set title
         alertDialogBuilder.setTitle("New Task");
 
-        View layout = getActivity().getLayoutInflater().inflate(R.layout.new_task, null);
+        View layout = getLayoutInflater().inflate(R.layout.new_task, null);
 
         final EditText taskTitle = (EditText)layout.findViewById(R.id.task);
 
@@ -143,8 +129,8 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
                                 task.setName(taskTitle.getText().toString());
                                 task.setProject_id(project.getId());
 
-                                ServerCommunicator.uploadTaskToServer(getActivity(), task,
-                                        ((QueuerApplication)getActivity().getApplication()).getRequestQueue(),
+                                ServerCommunicator.uploadTaskToServer(ProjectActivity.this, task,
+                                        ((QueuerApplication) getApplication()).getRequestQueue(),
                                         new Response.Listener<JSONObject>() {
                                             @Override
                                             public void onResponse(JSONObject o) {
@@ -156,7 +142,8 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
                                             public void onErrorResponse(VolleyError volleyError) {
                                                 //try again?
                                             }
-                                        });
+                                        }
+                                );
                             }
                         })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -168,11 +155,11 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
     }
 
     private void editTask(final Task task){
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         // set title
         alertDialogBuilder.setTitle(getString(R.string.edit_task));
 
-        View layout = getActivity().getLayoutInflater().inflate(R.layout.new_task, null);
+        View layout = getLayoutInflater().inflate(R.layout.new_task, null);
 
         final EditText taskTitle = (EditText)layout.findViewById(R.id.task);
         final EditText taskPos = (EditText)layout.findViewById(R.id.position);
@@ -190,13 +177,14 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
                                 task.setName(taskTitle.getText().toString());
-                                project.updateTask(getActivity(),                                        ((QueuerApplication) getActivity().getApplication()).getRequestQueue(),
+                                project.updateTask(ProjectActivity.this,
+                                        ((QueuerApplication) getApplication()).getRequestQueue(),
                                         task,
                                         new Response.Listener<JSONObject>() {
                                             @Override
                                             public void onResponse(JSONObject o) {
                                                 Task task1 = new Gson().fromJson(o.toString(), Task.class);
-                                                Task.updateTask(getActivity(), task1);
+                                                Task.updateTask(ProjectActivity.this, task1);
                                                 taskUpdated(task1);
                                             }
                                         }, new Response.ErrorListener() {
@@ -217,11 +205,11 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
 
     int swatchColor;
     private void editProject(){
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         // set title
         alertDialogBuilder.setTitle(getString(R.string.action_edit_project));
 
-        View layout = getActivity().getLayoutInflater().inflate(R.layout.new_project, null);
+        View layout = getLayoutInflater().inflate(R.layout.new_project, null);
 
         final EditText projectTitle = (EditText)layout.findViewById(R.id.projectName);
         projectTitle.setText(project.getName());
@@ -291,15 +279,14 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
                             public void onClick(DialogInterface dialog, int id) {
                                 project.setName(projectTitle.getText().toString());
                                 project.setColor(swatchColor);
-                                Project.updateProjectOnServer(getActivity(),
-                                        ((QueuerApplication) getActivity().getApplication()).getRequestQueue(),
+                                Project.updateProjectOnServer(ProjectActivity.this,
+                                        ((QueuerApplication) getApplication()).getRequestQueue(),
                                         project,
                                         new Response.Listener<JSONObject>() {
                                             @Override
                                             public void onResponse(JSONObject o) {
                                                 project = new Gson().fromJson(o.toString(), Project.class);
-                                                Project.updateProject(getActivity(), project);
-                                                delegate.setupNav(null);
+                                                Project.updateProject(ProjectActivity.this, project);
                                             }
                                         }, new Response.ErrorListener() {
                                             @Override
@@ -319,8 +306,8 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
 
     private void hideProject(){
         project.setHidden(!project.isHidden());
-        Project.updateProject(getActivity(), project);
-        delegate.setupNav(null);
+        Project.updateProject(this, project);
+        finish();
     }
 
     private void deleteProject(){
@@ -329,38 +316,42 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
 
     @Override
     public void setupForAsync() {
-        delegate.setupForAsync();
+        findViewById(R.id.loading_bar).setVisibility(View.VISIBLE);
+    }
+
+    public void asyncEnded() {
+        findViewById(R.id.loading_bar).setVisibility(View.GONE);
     }
 
     @Override
     public void taskUpdated(Task task) {
-        delegate.asyncEnded();
+        asyncEnded();
         adapter.notifyDataSetChanged();
     }
 
     @Override
     public void taskCreated(Task task) {
-        delegate.asyncEnded();
-        project.addTaskToBeginning(getActivity(),
-                ((QueuerApplication)getActivity().getApplication()).getRequestQueue(), task);
+        asyncEnded();
+        project.addTaskToBeginning(this,
+                ((QueuerApplication)getApplication()).getRequestQueue(), task);
         adapter.notifyDataSetChanged();
     }
 
     @Override
     public Context getContext() {
-        return getActivity();
+        return this;
     }
 
     @Override
     public void taskChangedOrder(Task task) {
-        project.updateTask(getActivity(),
-                ((QueuerApplication)getActivity().getApplication()).getRequestQueue(),
+        project.updateTask(this,
+                ((QueuerApplication)getApplication()).getRequestQueue(),
                 task,
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject o) {
                         Task task1 = new Gson().fromJson(o.toString(), Task.class);
-                        Task.updateTask(getActivity(), task1);
+                        Task.updateTask(ProjectActivity.this, task1);
                         taskUpdated(task1);
                     }
                 }, new Response.ErrorListener() {

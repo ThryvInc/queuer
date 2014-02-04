@@ -14,7 +14,11 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
 import com.google.gson.Gson;
+import com.rndapp.task_feed.QueuerApplication;
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.api.ServerCommunicator;
 import com.rndapp.task_feed.models.ActivityUtils;
@@ -78,7 +82,64 @@ public class LoginActivity extends ActionBarActivity implements View.OnClickList
             case R.id.login_button:
                 if (!userField.getText().toString().equals("") && !passField.getText().toString().equals("")){
                     findViewById(R.id.progress_bar).setVisibility(View.VISIBLE);
-                    new LoginTask().execute(userField.getText().toString(), passField.getText().toString());
+                    ServerCommunicator.login(this, ((QueuerApplication) getApplication()).getRequestQueue(),
+                            userField.getText().toString(), passField.getText().toString(),
+                            new Response.Listener<JSONObject>() {
+                                boolean errored;
+                                String errorText;
+
+                                @Override
+                                public void onResponse(JSONObject jsob) {
+                                    try {
+                                        Log.d("Received from /sessions", jsob.toString());
+                                        if (jsob.has("api_key") && jsob.getString("api_key") != null) {
+                                            String apiKey = jsob.getString("api_key");
+                                            ActivityUtils.saveApiKey(LoginActivity.this, apiKey);
+                                            //create user using Gson
+                                            user = new Gson().fromJson(jsob.toString(), User.class);
+                                            ActivityUtils.saveUserId(LoginActivity.this, user.getId());
+                                        } else if (jsob.has("errors")) {
+                                            //error
+                                            errored = true;
+                                            errorText = jsob.getString("errors");
+                                        } else {
+                                            //error
+                                            errored = true;
+                                            errorText = "Unknown Error";
+                                        }
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                        //error
+                                        errored = true;
+                                        errorText = e.getLocalizedMessage();
+                                    }
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            findViewById(R.id.progress_bar).setVisibility(View.GONE);
+                                            //go to the next activity
+                                            if (!errored && user != null) {
+                                                LoginActivity.this
+                                                        .startActivity(new Intent(LoginActivity.this, FeedActivity.class));
+                                                LoginActivity.this.finish();
+                                            } else {
+                                                ((TextView) findViewById(R.id.update)).setText(errorText);
+                                            }
+                                        }
+                                    });
+                                }
+                            }, new Response.ErrorListener() {
+                                @Override
+                                public void onErrorResponse(final VolleyError volleyError) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            findViewById(R.id.progress_bar).setVisibility(View.GONE);
+                                            ((TextView) findViewById(R.id.update)).setText(volleyError.getLocalizedMessage());
+                                        }
+                                    });
+                                }
+                            });
 
                     if (remember.isChecked()){
                         ActivityUtils.setCredentialBoolean(this, REMEMBER_KEY, true);
@@ -93,86 +154,4 @@ public class LoginActivity extends ActionBarActivity implements View.OnClickList
         }
     }
 
-    private class LoginTask extends AsyncTask<String, String, Object> {
-        private boolean errored;
-        private String errorText;
-
-        /*
-        * params[0] = username
-        * params[1] = password
-        */
-        @Override
-        protected Object doInBackground(String... params) {
-            ServerCommunicator server = new ServerCommunicator(LoginActivity.this);
-
-            //get user details
-            SignInModel signInModel = new SignInModel();
-            signInModel.setUsername(params[0]);
-            signInModel.setPassword(params[1]);
-
-                JSONObject signInJson = null;
-                try {
-                    signInJson = new JSONObject(new Gson().toJson(signInModel));
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-                startSession(LoginActivity.this, signInJson);
-
-            return null;
-        }
-
-        @Override
-        protected void onProgressUpdate(String... values) {
-            super.onProgressUpdate(values);
-            ((TextView)findViewById(R.id.update)).setText(values[0]);
-        }
-
-        private void startSession(Context context, JSONObject userAndPwd){
-            publishProgress("Starting session...");
-            ServerCommunicator server = new ServerCommunicator(context);
-            try{
-                String json = server.postToEndpointUnauthed("session", userAndPwd);
-                Log.d("Received from /sessions", json);
-                JSONObject jsob = new JSONObject(json);
-                if (jsob.has("api_key") && jsob.getString("api_key") != null){
-                    String apiKey = jsob.getString("api_key");
-                    ActivityUtils.saveApiKey(LoginActivity.this, apiKey);
-                    //create user using Gson
-                    user = new Gson().fromJson(json, User.class);
-                    ActivityUtils.saveUserId(LoginActivity.this, user.getId());
-                }else if (jsob.has("errors")){
-                    //error
-                    errored = true;
-                    errorText = jsob.getString("errors");
-                }else {
-                    //error
-                    errored = true;
-                    errorText = "Unknown Error";
-                }
-            }catch(Exception e){
-                e.printStackTrace();
-                //error
-                errored = true;
-                errorText = e.getLocalizedMessage();
-            }
-        }
-
-        @Override
-        protected void onPostExecute(Object o){
-            new Handler().post(new Runnable(){
-                @Override
-                public void run() {
-                    findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                    //go to the next activity
-                    if (!errored && user != null){
-                        LoginActivity.this
-                                .startActivity(new Intent(LoginActivity.this, FeedActivity.class));
-                        LoginActivity.this.finish();
-                    }else{
-                        ((TextView)findViewById(R.id.update)).setText(errorText);
-                    }
-                }
-            });
-        }
-    }
 }
