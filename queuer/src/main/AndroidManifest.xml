@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.rndapp.task_feed"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="14"
+        android:targetSdkVersion="17" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name="com.rndapp.task_feed.activities.LoginActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+                android:name="com.rndapp.task_feed.activities.FeedActivity"
+                android:label="@string/app_name" >
+        </activity>
+        <activity
+                android:name="com.rndapp.task_feed.activities.CreateAccountActivity"
+                android:label="@string/create_account" >
+        </activity>
+        <receiver android:icon="@drawable/cw"
+                  android:label="@string/app_name"
+                  android:name=".broadcast_receivers.ListWidgetProvider">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                       android:resource="@xml/widget_provider" />
+        </receiver>
+        <service android:name=".services.ListWidgetService"
+                 android:permission="android.permission.BIND_REMOTEVIEWS" />
+    </application>
+
+</manifest>

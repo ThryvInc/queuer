@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<color name="transparent">#00000000</color>
+	<color name="off_white">#484848</color>
+	<color name="black">#000</color>
+	
+	<color name="mod1">#FFFFFF</color>
+    <color name="main">#d2c6dd</color>
+    <color name="mod2">#9987a0</color>
+    <color name="text">#452f50</color>
+    <color name="small1">#af83bb</color>
+    <color name="heading">#000</color>
+    <color name="rare">#642b84</color>
+    
+    <color name="smog">#ff464D5C</color>
+    <color name="green">#93DB70</color>
+    <color name="goldenrod">#ffFAFAD2</color>
+    <color name="red">#FF4545</color>
+    <color name="blue">#009ACD</color>
+    <color name="yellow">#F7F730</color>
+    <color name="orange">#FF904F</color>
+    <color name="plum">#9B30FF</color>
+    <color name="turquoise">#01C5BB</color>
+
+    <!-- EnhancedListView -->
+    <color name="btn_pressed">#ff33b5e5</color>
+    <color name="btn_focused">#ff0099cc</color>
+    <color name="btn_normal">#00000000</color>
+
+    <color name="popup_bg_color">#EE666666</color>
+    <color name="separator_color">#BBBBBB</color>
+    <color name="popup_text_color">#FFFFFF</color>
+</resources>
