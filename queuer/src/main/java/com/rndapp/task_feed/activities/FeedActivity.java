@@ -65,6 +65,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
                                 projects, serverProjects);
                         setupNav(projects);
                         asyncEnded();
+                        adapter.setProjects(projects);
                     }
                 }, new Response.ErrorListener() {
                     @Override
