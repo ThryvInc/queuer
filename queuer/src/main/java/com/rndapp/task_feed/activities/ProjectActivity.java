@@ -125,6 +125,8 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
                 .setPositiveButton("Ok",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
+                                setupForAsync();
+
                                 Task task = new Task();
                                 task.setName(taskTitle.getText().toString());
                                 task.setProject_id(project.getId());
@@ -176,6 +178,7 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
                 .setPositiveButton("Ok",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
+                                setupForAsync();
                                 task.setName(taskTitle.getText().toString());
                                 project.updateTask(ProjectActivity.this,
                                         ((QueuerApplication) getApplication()).getRequestQueue(),
@@ -277,6 +280,7 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
                 .setPositiveButton("Ok",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
+                                setupForAsync();
                                 project.setName(projectTitle.getText().toString());
                                 project.setColor(swatchColor);
                                 Project.updateProjectOnServer(ProjectActivity.this,
@@ -295,6 +299,7 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
                                             }
                                         }
                                 );
+                                asyncEnded();
                             }
                         })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -316,11 +321,11 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
 
     @Override
     public void setupForAsync() {
-        findViewById(R.id.loading_bar).setVisibility(View.VISIBLE);
+        findViewById(R.id.proj_loading_bar).setVisibility(View.VISIBLE);
     }
 
     public void asyncEnded() {
-        findViewById(R.id.loading_bar).setVisibility(View.GONE);
+        findViewById(R.id.proj_loading_bar).setVisibility(View.GONE);
     }
 
     @Override
@@ -344,6 +349,7 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
 
     @Override
     public void taskChangedOrder(Task task) {
+        setupForAsync();
         project.updateTask(this,
                 ((QueuerApplication)getApplication()).getRequestQueue(),
                 task,
