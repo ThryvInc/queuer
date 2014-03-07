@@ -12,9 +12,11 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
+import com.android.volley.RetryPolicy;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
@@ -33,6 +35,7 @@ public class ServerCommunicator {
     public static final String BASE_URL = "http://queuer-rndapp.rhcloud.com/api/v1/"; //192.168.11.152:3000
     public static final String API_KEY_PREFERENCE = "com.rndapp.queuer.api_key_pref";
     public static final String API_KEY_HEADER = "X-Qer-Authorization";
+    public static final RetryPolicy retryPolicy = new DefaultRetryPolicy(1000, 0, (float)1.0);
 
     public static void createAccount(Context context,
                              RequestQueue queue,
@@ -184,6 +187,8 @@ public class ServerCommunicator {
                 return params;
             }
         };
+        //request.setRetryPolicy();
+        System.out.println("number of retries = " + request.getRetryPolicy().getCurrentRetryCount() + "\ntimeout = " + request.getRetryPolicy().getCurrentTimeout() + "ms");
         queue.add(request);
     }
 

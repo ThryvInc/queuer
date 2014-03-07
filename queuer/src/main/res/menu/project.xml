@@ -1,29 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:queuer="http://schemas.android.com/apk/res-auto">
 
     <item
             android:id="@+id/action_add_task"
             android:orderInCategory="1"
-            android:showAsAction="always"
+            queuer:showAsAction="always"
             android:title="@string/action_add_task"/>
 
     <item
             android:id="@+id/action_edit_project"
             android:orderInCategory="2"
-            android:showAsAction="collapseActionView|withText"
+            queuer:showAsAction="collapseActionView|withText"
             android:title="@string/action_edit_project"/>
 
     <item
             android:id="@+id/action_hide_project"
             android:orderInCategory="3"
-            android:showAsAction="collapseActionView|withText"
+            queuer:showAsAction="collapseActionView|withText"
             android:title="@string/action_hide_project"/>
 
     <item
             android:id="@+id/action_delete_project"
             android:orderInCategory="4"
-            android:showAsAction="collapseActionView|withText"
+            queuer:showAsAction="collapseActionView|withText"
             android:title="@string/action_delete_project"/>
 
 </menu>
