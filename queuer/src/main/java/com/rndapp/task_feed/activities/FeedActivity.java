@@ -35,6 +35,7 @@ import org.json.JSONObject;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class FeedActivity extends ActionBarActivity implements ProjectDisplayer {
     private static final String TAG = "FeedActivity";
@@ -51,6 +52,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
 
         //load projects
         projects = ActivityUtils.loadProjectsFromDatabase(this);
+        adapter = new ProjectListAdapter(FeedActivity.this, projects);
 
         setupForAsync();
         ActivityUtils.downloadProjectsFromServer(this,
@@ -58,15 +60,30 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray json) {
-                        Type listOfProjects = new TypeToken<List<Project>>() {}.getType();
-                        ArrayList<Project> serverProjects = new Gson().fromJson(json.toString(), listOfProjects);
+                        Type listOfProjects = new TypeToken<List<Project>>() {
+                        }.getType();
+                        final ArrayList<Project> serverProjects = new Gson().fromJson(json.toString(), listOfProjects);
                         projects = ActivityUtils.syncProjectsWithServer(FeedActivity.this,
-                                ((QueuerApplication)getApplication()).getRequestQueue(),
+                                ((QueuerApplication) getApplication()).getRequestQueue(),
                                 projects, serverProjects);
                         setupNav(projects);
-                        asyncEnded();
+                        //asyncEnded();
                         adapter.setProjects(projects);
+                        new Thread(new Runnable() {
+                            public void run() {
+                                projects = ActivityUtils.syncProjectsWithDatabase(FeedActivity.this,
+                                        ((QueuerApplication) getApplication()).getRequestQueue(), projects, serverProjects);
+                                runOnUiThread(new Runnable() {
+                                    public void run() {
+                                        adapter.setProjects(projects);
+                                        asyncEnded();
+                                    }
+                                });
+                                //System.out.println("i saved my projects to the database");
+                            }
+                        }).start();
                     }
+
                 }, new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError volleyError) {
@@ -78,7 +95,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
 
         EnhancedListView lv = (EnhancedListView)findViewById(R.id.project_list_view);
 
-        adapter = new ProjectListAdapter(this, projects);
+        //adapter = new ProjectListAdapter(this, projects);
 
         lv.setDismissCallback(new EnhancedListView.OnDismissCallback() {
             /**

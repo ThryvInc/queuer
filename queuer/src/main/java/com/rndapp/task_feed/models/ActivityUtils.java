@@ -115,14 +115,14 @@ public class ActivityUtils {
         ServerCommunicator.downloadProjectsFromServer(context, queue, listener, errorListener);
     }
 
-    public static ArrayList<Project> syncProjectsWithServer(Context context,
-                                                            RequestQueue queue,
+    public static ArrayList<Project> syncProjectsWithServer(final Context context,
+                                                            final RequestQueue queue,
                                                              ArrayList<Project> projects,
-                                                             ArrayList<Project> serverProjects){
-        for (Project project : projects){
+                                                             final ArrayList<Project> serverProjects) {
+        for (Project project : projects) {
             boolean isOnServer = false;
-            if (serverProjects != null){
-                for (Project serverProject : serverProjects){
+            if (serverProjects != null) {
+                for (Project serverProject : serverProjects) {
                     if (project.equals(serverProject)) {
                         isOnServer = true;
                     }
@@ -131,56 +131,52 @@ public class ActivityUtils {
             if (!isOnServer) {
                 final Project newProject = project;
                 Project.uploadProjectToServer(context, queue, project, new Response.Listener() {
-                            @Override
-                            public void onResponse(Object o) {
-                                //upload tasks
-                                for (Task task : newProject.getTasks()){
-                                    task.setProject_id(newProject.getId());
-                                }
-                            }
-                        }, new Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError volleyError) {
+                    @Override
+                    public void onResponse(Object o) {
+                        //upload tasks
+                        for (Task task : newProject.getTasks()) {
+                            task.setProject_id(newProject.getId());
+                        }
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError volleyError) {
 
-                            }
-                        });
+                    }
+                });
             }
         }
+        return projects;
+    }
+
+    public static ArrayList<Project> syncProjectsWithDatabase(final Context context, final RequestQueue queue, ArrayList<Project> projects, final ArrayList<Project> serverProjects) {
 
         if (serverProjects != null){
             for (Project serverProject : serverProjects) {
                 boolean isInDatabase = false;
                 int indexOfProject = 0;
                 Project syncedProject = null;
-                for (Project project : projects){
-                    if (project.equals(serverProject)){
+                for (Project project : projects) {
+                    if (project.equals(serverProject)) {
                         isInDatabase = true;
                         indexOfProject = projects.indexOf(project);
-                        syncedProject = new syncProjectsTask().doInBackground(context, queue, project, serverProject);
+                        syncedProject = syncProjects(context, queue, project, serverProject);
                     }
                 }
                 if (!isInDatabase) {
                     Project project = Project.addProjectToDatabase(context, serverProject);
-                    for (Task task : serverProject.getTasks()){
+                    for (Task task : serverProject.getTasks()) {
                         project.addTaskRespectingOrder(context, task);
                     }
                     projects.add(project);
-                }else if (syncedProject != null){
+                } else if (syncedProject != null) {
                     projects.set(indexOfProject, syncedProject);
                 }
             }
         }
 
+
         return projects;
-    }
-
-    private static class syncProjectsTask extends AsyncTask <Object, Integer, Project> {
-        protected Project doInBackground(Object... params) {
-            return syncProjects(((Context)params[0]), (RequestQueue)params[1], (Project)params[2], (Project)params[3]);
-            //Toast.makeText((Context)params[0], "you win, it's working.", Toast.LENGTH_SHORT).show();
-            //return project;
-        }
-
     }
 
     private static Project syncProjects(Context context, RequestQueue queue, Project localProject, Project remoteProject) {
