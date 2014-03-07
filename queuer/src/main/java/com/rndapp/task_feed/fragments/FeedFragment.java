@@ -58,7 +58,7 @@ public class FeedFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_feed, container, false);
+        View rootView = inflater.inflate(R.layout.project_list_item, container, false);
         EnhancedListView lv = (EnhancedListView)rootView.findViewById(R.id.project_list_view);
 
         adapter = new ProjectListAdapter(getActivity(), projects);

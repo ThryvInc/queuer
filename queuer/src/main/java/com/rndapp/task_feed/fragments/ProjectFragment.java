@@ -59,7 +59,7 @@ public class ProjectFragment extends Fragment implements TaskDisplayer{
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         project = (Project)getArguments().getSerializable(ARG_PROJECT);
 
-        View rootView = inflater.inflate(R.layout.fragment_project, container, false);
+        View rootView = inflater.inflate(R.layout.task_list_item, container, false);
         rootView.setBackgroundColor(project.getColor());
 
         adapter = new TaskListAdapter(this, project.getTasks());
