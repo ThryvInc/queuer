@@ -138,6 +138,7 @@ public class LoginActivity extends ActionBarActivity implements View.OnClickList
                                             ((TextView) findViewById(R.id.update)).setText(volleyError.getLocalizedMessage());
                                         }
                                     });
+
                                 }
                             });
 

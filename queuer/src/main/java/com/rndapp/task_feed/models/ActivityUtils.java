@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -154,7 +156,7 @@ public class ActivityUtils {
                     if (project.equals(serverProject)){
                         isInDatabase = true;
                         indexOfProject = projects.indexOf(project);
-                        syncedProject = syncProjects(context, queue, project, serverProject);
+                        syncedProject = new syncProjectsTask().doInBackground(context, queue, project, serverProject);
                     }
                 }
                 if (!isInDatabase) {
@@ -172,7 +174,16 @@ public class ActivityUtils {
         return projects;
     }
 
-    private static Project syncProjects(Context context, RequestQueue queue, Project localProject, Project remoteProject){
+    private static class syncProjectsTask extends AsyncTask <Object, Integer, Project> {
+        protected Project doInBackground(Object... params) {
+            return syncProjects(((Context)params[0]), (RequestQueue)params[1], (Project)params[2], (Project)params[3]);
+            //Toast.makeText((Context)params[0], "you win, it's working.", Toast.LENGTH_SHORT).show();
+            //return project;
+        }
+
+    }
+
+    private static Project syncProjects(Context context, RequestQueue queue, Project localProject, Project remoteProject) {
         Project syncedProject = null;
         if (remoteProject == null){
             return localProject;
