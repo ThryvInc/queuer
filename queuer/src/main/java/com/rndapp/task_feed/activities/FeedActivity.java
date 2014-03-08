@@ -65,6 +65,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
                                 projects, serverProjects);
                         setupNav(projects);
                         asyncEnded();
+                        adapter.setProjects(projects);
                     }
                 }, new Response.ErrorListener() {
                     @Override
@@ -303,6 +304,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
                 .setPositiveButton("Ok",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
+                                setupForAsync();
                                 Project.uploadProjectToServer(FeedActivity.this,
                                         ((QueuerApplication) getApplication()).getRequestQueue(),
                                         new Project(taskTitle.getText().toString(), swatchColor),
@@ -324,6 +326,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
                                                 //try again?
                                             }
                                         });
+                                asyncEnded();
                             }
                         })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
