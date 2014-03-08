@@ -68,11 +68,11 @@ public class ProjectListAdapter extends BaseAdapter implements RearrangementList
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null){
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            convertView = inflater.inflate(R.layout.task_list_item, null);
+            convertView = inflater.inflate(R.layout.project_list_item, null);
         }
 
         Project project = getItem(position);
-        TextView tv = (TextView)convertView.findViewById(R.id.tv_task);
+        TextView tv = (TextView)convertView.findViewById(R.id.tv_project);
         tv.setText(project.getName() + ": " + project.getFirstTaskText());
         tv.setBackgroundColor(project.getColor());
         return convertView;
