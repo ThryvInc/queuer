@@ -187,8 +187,6 @@ public class ServerCommunicator {
                 return params;
             }
         };
-        //request.setRetryPolicy();
-        System.out.println("number of retries = " + request.getRetryPolicy().getCurrentRetryCount() + "\ntimeout = " + request.getRetryPolicy().getCurrentTimeout() + "ms");
         queue.add(request);
     }
 

@@ -162,7 +162,6 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.feed, menu);
-        System.out.println(getActionBar().isShowing());
         return super.onCreateOptionsMenu(menu);
     }
 
