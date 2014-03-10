@@ -2,7 +2,7 @@ apply plugin: 'android'
 
 sourceSets {
     unitTest {
-        java.srcDir file('src/test/java')
+        java.srcDirs = ['src/test/java']
         resources.srcDir file('src/test/res')
     }
 }

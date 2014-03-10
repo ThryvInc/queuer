@@ -47,7 +47,7 @@ public class ActivityUtils {
     public static void saveUserId(Context context, int userId){
         SharedPreferences sp = context.getSharedPreferences(USER_ID_PREF, Activity.MODE_PRIVATE);
         SharedPreferences.Editor editPrefs = sp.edit();
-        //store api key
+        //store user id
         editPrefs.putInt("user_id", userId);
         editPrefs.commit();
     }
@@ -55,14 +55,14 @@ public class ActivityUtils {
     public static void saveUserCredential(Context context, String credKey, String credential){
         SharedPreferences sp = context.getSharedPreferences(USER_CREDENTIALS_PREF, Activity.MODE_PRIVATE);
         SharedPreferences.Editor editPrefs = sp.edit();
-        //store api key
+        //store user credential
         editPrefs.putString(credKey, credential);
         editPrefs.commit();
     }
 
-    public static String getUserCredential(Context context, String credKey, String credential){
+    public static String getUserCredential(Context context, String credKey, String retval){
         return context.getSharedPreferences(USER_CREDENTIALS_PREF, Activity.MODE_PRIVATE)
-                .getString(credKey, credential);
+                .getString(credKey, retval);
     }
 
     public static void setCredentialBoolean(Context context, String credKey, boolean cred){
