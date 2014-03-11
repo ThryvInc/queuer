@@ -63,8 +63,8 @@ public class Project implements Serializable{
         TaskDataSource source = new TaskDataSource(context);
         source.open();
         task = source.createTask(task.getName(),
-                this.getId(),
-                task.getId(),
+                this.getId(), //projectId
+                task.getId(), //serverId
                 task.getOrder(),
                 task.getPoints(),
                 task.isFinished());
