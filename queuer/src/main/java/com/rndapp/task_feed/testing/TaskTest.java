@@ -135,4 +135,10 @@ public class TaskTest extends AndroidTestCase {
         );
     }
 
+    public void testToString() throws Exception {
+        task.setName(testString);
+        if (!task.toString().equals(testString)) throw new Exception("" +
+                "task name set or toString doesn't function properly");
+    }
+
 }

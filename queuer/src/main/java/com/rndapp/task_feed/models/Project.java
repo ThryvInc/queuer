@@ -170,8 +170,8 @@ public class Project implements Serializable{
         return tasks.size() == 0 || isHidden();
     }
 
-    public boolean isUpToDateWithServerProject(Task serverProject){
-        return this.getUpdated_at().before(serverProject.getUpdated_at());
+    public boolean isUpToDateWithServerProject(Project serverProject){
+        return this.getUpdated_at().after(serverProject.getUpdated_at());
     }
 
     public static void uploadProjectToServer(Context context, RequestQueue queue, Project project,
@@ -218,9 +218,8 @@ public class Project implements Serializable{
 
         Project project = (Project) o;
 
-        if (id != project.id) return false;
+        return id == project.id;
 
-        return true;
     }
 
     @Override

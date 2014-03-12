@@ -100,7 +100,6 @@ public class ActivityUtilsTest extends AndroidTestCase {
         tds.createTask("mytitle", 1, 1, 1, 0, false);
         ArrayList<Task> temp = tds.getAllTasks();
         task = temp.get(temp.size()-1);
-        Log.d(tag, task.getName());
         tds.deleteTask(task);
         tds.close();
     }
