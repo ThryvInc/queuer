@@ -50,7 +50,7 @@ public class ActivityUtilsTest extends AndroidTestCase {
     private final static String testCred = "myusername";
     private final static boolean testBool = true;
     private final static int numProjects = 5;
-    Context context;
+    private Context context;
 
     @Override
     public void setUp() throws Exception {

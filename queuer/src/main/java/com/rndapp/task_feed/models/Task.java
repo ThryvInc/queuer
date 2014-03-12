@@ -78,10 +78,8 @@ public class Task implements Serializable, Comparable<Task>{
 
         Task task = (Task) o;
 
-        if (project_id != task.project_id) return false;
-        if (id != task.id) return false;
+        return !(project_id != task.project_id || id != task.id);
 
-        return true;
     }
 
     @Override
