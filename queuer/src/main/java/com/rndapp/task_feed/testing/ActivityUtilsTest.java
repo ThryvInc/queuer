@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.Exception;
 import java.lang.reflect.Array;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -106,16 +107,18 @@ public class ActivityUtilsTest extends AndroidTestCase {
 
     private ArrayList<Project> populateProjectList(Context context) {
         ArrayList<Project> projects = new ArrayList<Project>();
+        String time_id;
         for (int i = 0; i < numProjects; i++) { //manually create new projects
-            projects.add(new Project(("proj-test#token" + i),i));
+            time_id = Long.toString(Calendar.getInstance(TimeZone.getDefault()).getTimeInMillis()/1000L);
+            projects.add(new Project(("proj-test#token" + time_id),i));
             Project project = projects.get(i);
             project.setId(-(i + 10) * 1000); //pick a server id; negative, so we don't conflict
             project.setCreated_at(new Date(i)); //pick an unlikely date
             project.setUpdated_at(new Date(1000 * i)); //pick another unlikely date
             TaskDataSource tds = new TaskDataSource(context);
             tds.open();
-            Task task = tds.createTask("blah herp" + i, project.getId(), -i,
-                    (int)(Calendar.getInstance(TimeZone.getDefault()).getTimeInMillis()/(60000L)), 0, false);
+            Task task = tds.createTask("task-test#token" + time_id, project.getId(), -i,
+                    Integer.parseInt(time_id), 0, false);
                     //make tasks with positions based on when they were created; this forces them to be sorted based on creation-time
                     //i was running into issues sometimes ending up with several tasks on one project when it failed and several tasks left over in the database
             tds.close();
@@ -171,8 +174,24 @@ public class ActivityUtilsTest extends AndroidTestCase {
         //the first list never gets assigned localIds.
     }
 
+    public void testSyncProjectsWithServer() throws Exception {
+        ArrayList<Project> projects = new ArrayList<Project>(), serverProjects = new ArrayList<Project>();
+        projects.add(new Project());
+        if (!(projects.equals(ActivityUtils.syncProjectsWithServer(context, null, projects, projects)))) throw
+                new Exception("syncProjectsWithServer should return the project list it was given");
+    }
+
 
     public void testSyncProjectsWithDatabase() throws Exception {
-
+        ArrayList<Project> projects = new ArrayList<Project>();
+        Project project = new Project("mytestproject", 1);
+        project.setUpdated_at(new Date(1));
+        projects.add(project);
+        if (!(projects.equals(ActivityUtils.syncProjectsWithDatabase(context, null, projects, projects)))) throw
+                new Exception("syncProjectsWithDatabase doesn't return an identical list of projects to the one that's passed in");
+        ArrayList<Project> updatedProjects = projects;
+        updatedProjects.get(0).setUpdated_at(new Date(2));
+        if (!projects.equals(ActivityUtils.syncProjectsWithDatabase(context, null, projects, updatedProjects))) throw
+            new Exception("syncProjectsWithDatabase doesn't return a correctly updated arraylist of tasks");
     }
 }
