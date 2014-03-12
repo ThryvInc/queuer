@@ -68,7 +68,7 @@ public class Task implements Serializable, Comparable<Task>{
     }
 
     public boolean isUpToDateWithServerTask(Task serverTask){
-        return this.getUpdated_at().before(serverTask.getUpdated_at());
+        return this.getUpdated_at().after(serverTask.getUpdated_at());
     }
 
     @Override

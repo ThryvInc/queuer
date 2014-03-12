@@ -33,24 +33,12 @@ public class TaskTest extends AndroidTestCase {
         super.tearDown();
     }
 
-    public void testCompareTo() throws Exception {
-
-    }
-
-    public void testUploadTaskToServer() throws Exception {
-
-    }
-
-    public void testMarkAsFinished() throws Exception {
-
-    }
-
-    public void testUpdateTaskOnServer() throws Exception {
-
-    }
-
     public void testIsUpToDateWithServerTask() throws Exception {
-
+        task.setUpdated_at(new Date(1));
+        Task task1 = new Task();
+        task1.setUpdated_at(new Date(2));
+        if (task.isUpToDateWithServerTask(task1)) throw new
+                Exception("task should only be considered up to date if it was updated *after* the server task");
     }
 
     public void testEquals() throws Exception {
@@ -139,7 +127,7 @@ public class TaskTest extends AndroidTestCase {
     }
 
     public void testCompare() throws Exception {
-        Task task1 = task;
+        Task task1 = new Task();
         task1.setOrder(1);
         task.setOrder(0);
         if (task.compareTo(task1) != -1) throw new Exception(
