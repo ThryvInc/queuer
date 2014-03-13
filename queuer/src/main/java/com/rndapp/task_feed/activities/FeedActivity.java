@@ -36,6 +36,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class FeedActivity extends ActionBarActivity implements ProjectDisplayer {
     private static final String TAG = "FeedActivity";
@@ -67,7 +68,6 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
                                 ((QueuerApplication) getApplication()).getRequestQueue(),
                                 projects, serverProjects);
                         setupNav(projects);
-                        //asyncEnded();
                         adapter.setProjects(projects);
                         new Thread(new Runnable() {
                             public void run() {
@@ -79,7 +79,6 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
                                         asyncEnded();
                                     }
                                 });
-                                //System.out.println("i saved my projects to the database");
                             }
                         }).start();
                     }
@@ -163,7 +162,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.feed, menu);
-        return true;
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
