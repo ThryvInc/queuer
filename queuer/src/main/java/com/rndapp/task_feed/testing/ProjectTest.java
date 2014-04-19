@@ -10,6 +10,7 @@ import com.rndapp.task_feed.models.Project;
 import com.rndapp.task_feed.models.Task;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 
 /**
@@ -20,6 +21,7 @@ public class ProjectTest extends AndroidTestCase {
     private Context context;
     private Task task;
     private Project project;
+    private ArrayList<Task> tasks;
     private static final String testString = "mytask";
     private static final int testInt = -50;
 
@@ -27,6 +29,7 @@ public class ProjectTest extends AndroidTestCase {
         task = new Task();
         project = new Project();
         context = getContext();
+        ArrayList<Task> tasks = new ArrayList<Task>();
         super.setUp();
     }
 
@@ -34,15 +37,23 @@ public class ProjectTest extends AndroidTestCase {
         task = null;
         context = null;
         project = null;
+        tasks = null;
         super.tearDown();
     }
 
     public void testToString() throws Exception {
-
+        project.setName(testString);
+        if(!project.toString().equals(testString)) throw new Exception("" + "project setname or" +
+                "toString doesn't function properly");
     }
 
     public void testGetFirstTaskText() throws Exception {
-
+        task.setFinished(false);
+        task.setName(testString);
+        tasks.add(task);
+        project.setTasks(tasks);
+        if (!project.getFirstTaskText().equals(testString)) throw new Exception("project" +
+                "getFirstTaskText doesn't function properly");
     }
 
     public void testAddTaskToBeginning() throws Exception {
@@ -58,11 +69,20 @@ public class ProjectTest extends AndroidTestCase {
     }
 
     public void testSortTasks() throws Exception {
+        Task task1 = new Task();
+        task.setName("first task");
+        task.setOrder(1);
+        task1.setName("second task");
+        task.setOrder(2);
+        tasks.add(task1);
+        tasks.add(task);
+        project.setTasks(tasks);
+        project.sortTasks();
+        if (!project.getTasks().get(0).equals(task)) throw new Exception("task sort failed.");
 
     }
 
     public void testGetTask() throws Exception {
-        ArrayList<Task> tasks = new ArrayList<Task>();
         task.setId(testInt);
         tasks.add(task);
         project.setTasks(tasks);
@@ -133,7 +153,6 @@ public class ProjectTest extends AndroidTestCase {
     }
 
     public void testTasks() throws Exception {
-        ArrayList<Task> tasks = new ArrayList<Task>();
         task.setId(testInt);
         tasks.add(task);
         project.setTasks(tasks);
