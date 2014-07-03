@@ -121,13 +121,7 @@ public class ActivityUtils {
                                                              final ArrayList<Project> serverProjects) {
         for (Project project : projects) {
             boolean isOnServer = false;
-            if (serverProjects != null) {
-                for (Project serverProject : serverProjects) {
-                    if (project.equals(serverProject)) {
-                        isOnServer = true;
-                    }
-                }
-            }
+            if (project.getId() != 0) isOnServer = true;
             if (!isOnServer) {
                 final Project newProject = project;
                 Project.uploadProjectToServer(context, queue, project, new Response.Listener() {
@@ -138,30 +132,26 @@ public class ActivityUtils {
                             task.setProject_id(newProject.getId());
                         }
                     }
-                }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError volleyError) {
-
-                    }
-                });
+                }, null);
             }
         }
         return projects;
     }
 
-    public static ArrayList<Project> syncProjectsWithDatabase(final Context context, final RequestQueue queue, ArrayList<Project> projects, final ArrayList<Project> serverProjects) {
+    public static ArrayList<Project> syncProjectsWithDatabase(final Context context,
+                                                              final RequestQueue queue,
+                                                              ArrayList<Project> projects,
+                                                              final ArrayList<Project> serverProjects) {
 
         if (serverProjects != null){
             for (Project serverProject : serverProjects) {
                 boolean isInDatabase = false;
                 int indexOfProject = 0;
                 Project syncedProject = null;
-                for (Project project : projects) {
-                    if (project.equals(serverProject)) {
-                        isInDatabase = true;
-                        indexOfProject = projects.indexOf(project);
-                        syncedProject = syncProjects(context, queue, project, serverProject);
-                    }
+                if (projects.contains(serverProject)){
+                    isInDatabase = true;
+                    indexOfProject = projects.indexOf(serverProject);
+                    syncedProject = syncProjects(context, queue, projects.get(indexOfProject), serverProject);
                 }
                 if (!isInDatabase) {
                     Project project = Project.addProjectToDatabase(context, serverProject);
@@ -180,15 +170,12 @@ public class ActivityUtils {
     }
 
     private static Project syncProjects(Context context, RequestQueue queue, Project localProject, Project remoteProject) {
-        Project syncedProject = null;
+        Project syncedProject;
         if (remoteProject == null){
             return localProject;
         }else {
             syncedProject =
                     localProject.getUpdated_at().before(remoteProject.getUpdated_at()) ? remoteProject : localProject;
-        }
-        if (syncedProject.getName().equals("Tonight")){
-            Log.d("Sync Project", syncedProject.getName());
         }
         syncedProject.setTasks(syncTasks(context, queue, localProject.getTasks(), remoteProject.getTasks()));
         return syncedProject;
@@ -196,31 +183,33 @@ public class ActivityUtils {
 
     private static ArrayList<Task> syncTasks(Context context, RequestQueue queue, ArrayList<Task> localTasks, ArrayList<Task> remoteTasks){
         final ArrayList<Task> syncedTasks = new ArrayList<Task>();
-        for (Task task : localTasks){
-            boolean isOnServer = false;
-            for (Task serverTask : remoteTasks){
-                if (serverTask.equals(task)){
-                    isOnServer = true;
-                    if (task.getUpdated_at() == null || task.getUpdated_at().before(serverTask.getUpdated_at())){
+        if (localTasks.size() < remoteTasks.size()){
+            for (Task remoteTask : remoteTasks){
+                if (!localTasks.contains(remoteTask)){
+                    //add it
+                    remoteTask = Task.addTaskToDatabase(context, remoteTask);
+                }
+                syncedTasks.add(remoteTask);
+            }
+        }else {
+            for (Task task : localTasks){
+                boolean isOnServer = task.getId() != 0;
+                if (isOnServer){
+                    //test which is more up to date
+                    Task serverTask = remoteTasks.get(remoteTasks.indexOf(task));
+                    if (!task.isUpToDateWithServerTask(serverTask)){
+                        //then it must be outdated
                         //take the server version
                         Task.updateTask(context, serverTask);
                         syncedTasks.add(serverTask);
+                    }else {
+                        syncedTasks.add(task);
                     }
+                }else {
+                    //put it on the server
+                    Task.uploadTaskToServer(context, queue, task, null, null);
+                    syncedTasks.add(task);
                 }
-            }
-            if (!isOnServer){
-                Task.uploadTaskToServer(context, queue, task, new Response.Listener<JSONObject>() {
-                            @Override
-                            public void onResponse(JSONObject o) {
-                                syncedTasks.add(new Gson().fromJson(o.toString(), Task.class));
-                            }
-                        }, new Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError volleyError) {
-
-                            }
-                        }
-                );
             }
         }
         return syncedTasks;

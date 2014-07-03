@@ -1,8 +1,10 @@
 package com.rndapp.task_feed.activities;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
@@ -29,7 +31,7 @@ import org.json.JSONObject;
 /**
  * Created by eschrock on 2/4/14.
  */
-public class ProjectActivity extends ActionBarActivity implements TaskDisplayer {
+public class ProjectActivity extends Activity implements TaskDisplayer {
     private Project project;
     private TaskListAdapter adapter;
     /**
@@ -40,15 +42,34 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        project = (Project)getIntent().getExtras().getSerializable(ARG_PROJECT);
+        if (Build.VERSION.SDK_INT > 19){
+            int blue = getResources().getColor(R.color.blue);
+            int red = getResources().getColor(R.color.red);
+            int yellow = getResources().getColor(R.color.yellow);
+            int goldenrod = getResources().getColor(R.color.goldenrod);
+            int turquoise = getResources().getColor(R.color.turquoise);
+            int orange = getResources().getColor(R.color.orange);
+            int plum = getResources().getColor(R.color.plum);
+
+            if (project.getColor() == blue) setTheme(R.style.BlueTheme);
+            if (project.getColor() == red) setTheme(R.style.RedTheme);
+            if (project.getColor() == yellow) setTheme(R.style.YellowTheme);
+            if (project.getColor() == goldenrod) setTheme(R.style.GoldenrodTheme);
+            if (project.getColor() == turquoise) setTheme(R.style.TurquoiseTheme);
+            if (project.getColor() == orange) setTheme(R.style.OrangeTheme);
+            if (project.getColor() == plum) setTheme(R.style.PlumTheme);
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_project);
 
-        project = (Project)getIntent().getExtras().getSerializable(ARG_PROJECT);
 
-        getSupportActionBar().setTitle(project.getName());
+        getActionBar().setTitle(project.getName());
 
-        View rootView = findViewById(R.id.project_root_view);
-        rootView.setBackgroundColor(project.getColor());
+        if (Build.VERSION.SDK_INT <= 19) {
+            View rootView = findViewById(R.id.project_root_view);
+            rootView.setBackgroundColor(project.getColor());
+        }
 
         adapter = new TaskListAdapter(this, project.getTasks());
 
@@ -59,7 +80,12 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
             @Override
             public EnhancedListView.Undoable onDismiss(EnhancedListView listView, int position) {
                 project.markTaskAtPositionAsFinished(ProjectActivity.this, ((QueuerApplication)getApplication()).getRequestQueue(), adjustPosition(position));
-                adapter.notifyDataSetChanged();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        adapter.notifyDataSetChanged();
+                    }
+                });
                 return null;
             }
         });
@@ -331,7 +357,12 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
     @Override
     public void taskUpdated(Task task) {
         asyncEnded();
-        adapter.notifyDataSetChanged();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override
@@ -339,7 +370,12 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
         asyncEnded();
         project.addTaskToBeginning(this,
                 ((QueuerApplication)getApplication()).getRequestQueue(), task);
-        adapter.notifyDataSetChanged();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override
@@ -366,6 +402,11 @@ public class ProjectActivity extends ActionBarActivity implements TaskDisplayer 
                         //try again?
                     }
                 });
-        adapter.notifyDataSetChanged();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }
+        });
     }
 }

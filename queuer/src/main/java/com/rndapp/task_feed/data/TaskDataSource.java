@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase;
 import com.rndapp.task_feed.models.Task;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Created with IntelliJ IDEA.
@@ -42,15 +43,17 @@ public class TaskDataSource {
         dbHelper.close();
     }
 
-    public Task createTask(String text, int projectId, int serverId, int position, int points, boolean completed) {
+    public Task createTask(Task task) {
         ContentValues values = new ContentValues();
-        values.put(TaskOpenHelper.COLUMN_SERVER_ID, serverId);
-        values.put(TaskOpenHelper.COLUMN_PROJECT_SERVER_ID, projectId);
-        values.put(TaskOpenHelper.COLUMN_POINTS, points);
-        values.put(TaskOpenHelper.COLUMN_POSITION, position);
-        int complete = completed ? 1 : 0;
+        values.put(TaskOpenHelper.COLUMN_SERVER_ID, task.getId());
+        values.put(TaskOpenHelper.COLUMN_PROJECT_SERVER_ID, task.getProject_id());
+        values.put(TaskOpenHelper.COLUMN_POINTS, task.getPoints());
+        values.put(TaskOpenHelper.COLUMN_UPDATED, task.getUpdated_at().getTime());
+        values.put(TaskOpenHelper.COLUMN_POSITION, task.getOrder());
+        int complete = task.isFinished() ? 1 : 0;
         values.put(TaskOpenHelper.COLUMN_COMPLETED, complete);
-        values.put(TaskOpenHelper.COLUMN_TEXT, text);
+        values.put(TaskOpenHelper.COLUMN_TEXT, task.getName());
+
         long insertId = database.insert(TaskOpenHelper.TABLE_TASKS, null,
                 values);
         Cursor cursor = database.query(TaskOpenHelper.TABLE_TASKS,
@@ -67,6 +70,7 @@ public class TaskDataSource {
         values.put(TaskOpenHelper.COLUMN_SERVER_ID, task.getId());
         values.put(TaskOpenHelper.COLUMN_PROJECT_SERVER_ID, task.getProject_id());
         values.put(TaskOpenHelper.COLUMN_POINTS, task.getPoints());
+        values.put(TaskOpenHelper.COLUMN_UPDATED, task.getUpdated_at().getTime());
         values.put(TaskOpenHelper.COLUMN_POSITION, task.getOrder());
         int complete = task.isFinished() ? 1 : 0;
         values.put(TaskOpenHelper.COLUMN_COMPLETED, complete);
@@ -109,6 +113,7 @@ public class TaskDataSource {
         task.setPoints(cursor.getInt(cursor.getColumnIndex(TaskOpenHelper.COLUMN_POINTS)));
         task.setOrder(cursor.getInt(cursor.getColumnIndex(TaskOpenHelper.COLUMN_POSITION)));
         task.setFinished(1 == cursor.getInt(cursor.getColumnIndex(TaskOpenHelper.COLUMN_COMPLETED)));
+        task.setUpdated_at(new Date(cursor.getLong(cursor.getColumnIndex(TaskOpenHelper.COLUMN_UPDATED))));
         return task;
     }
 }

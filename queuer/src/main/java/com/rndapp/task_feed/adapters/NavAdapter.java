@@ -10,7 +10,7 @@ import android.widget.TextView;
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.models.Project;
 
-import org.jetbrains.annotations.Nullable;
+//import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 
@@ -41,7 +41,7 @@ public class NavAdapter extends BaseAdapter {
         return projects.get(position).getId();
     }
 
-    @Nullable
+//    @Nullable
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null){

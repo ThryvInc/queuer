@@ -1,6 +1,7 @@
 package com.rndapp.task_feed.models;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -9,6 +10,7 @@ import com.rndapp.task_feed.api.ServerCommunicator;
 import com.rndapp.task_feed.data.TaskDataSource;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 
 /**
@@ -29,10 +31,27 @@ public class Task implements Serializable, Comparable<Task>{
     private Date created_at;
     private Date updated_at;
 
+    public static Task addTaskToDatabase(Context context, Task task){
+        TaskDataSource source = new TaskDataSource(context);
+        source.open();
+        task = source.createTask(task);
+        source.close();
+        return task;
+    }
+
     public static void updateTask(Context context, Task task){
         TaskDataSource source = new TaskDataSource(context);
         source.open();
         source.updateTask(task);
+        source.close();
+    }
+
+    public static void updateTasks(Context context, ArrayList<Task> tasksToUpdate){
+        TaskDataSource source = new TaskDataSource(context);
+        source.open();
+        for (Task task : tasksToUpdate){
+            source.updateTask(task);
+        }
         source.close();
     }
 
@@ -68,7 +87,7 @@ public class Task implements Serializable, Comparable<Task>{
     }
 
     public boolean isUpToDateWithServerTask(Task serverTask){
-        return this.getUpdated_at().before(serverTask.getUpdated_at());
+        return this.getUpdated_at().equals(serverTask.getUpdated_at());
     }
 
     @Override

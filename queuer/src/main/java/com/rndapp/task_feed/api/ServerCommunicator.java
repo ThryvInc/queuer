@@ -32,7 +32,7 @@ public class ServerCommunicator {
     public static final String USER_CREDENTIALS_PREF = "com.rndapp.queuer.user_creds";
     public static final String USER_ID_PREF = "com.rndapp.queuer.user_id_pref";
 
-    public static final String BASE_URL = "http://queuer-rndapp.rhcloud.com/api/v1/"; //192.168.11.152:3000
+    public static final String BASE_URL = "https://queuer-rndapp.rhcloud.com/api/v1/"; //192.168.11.152:3000
     public static final String API_KEY_PREFERENCE = "com.rndapp.queuer.api_key_pref";
     public static final String API_KEY_HEADER = "X-Qer-Authorization";
     public static final RetryPolicy retryPolicy = new DefaultRetryPolicy(1000, 0, (float)1.0);
@@ -187,6 +187,7 @@ public class ServerCommunicator {
                 return params;
             }
         };
+        request.setRetryPolicy(new DefaultRetryPolicy(30*1000, 0, 0));
         queue.add(request);
     }
 
@@ -211,6 +212,7 @@ public class ServerCommunicator {
                 return params;
             }
         };
+        request.setRetryPolicy(new DefaultRetryPolicy(30*1000, 0, 0));
         queue.add(request);
     }
 	
@@ -232,6 +234,7 @@ public class ServerCommunicator {
                 return params;
             }
         };
+        request.setRetryPolicy(new DefaultRetryPolicy(30*1000, 0, 0));
         queue.add(request);
 	}
 	
@@ -251,6 +254,7 @@ public class ServerCommunicator {
                 return params;
             }
         };
+        request.setRetryPolicy(new DefaultRetryPolicy(30*1000, 0, 0));
         queue.add(request);
 	}
 	
@@ -273,6 +277,7 @@ public class ServerCommunicator {
                 return params;
             }
         };
+        request.setRetryPolicy(new DefaultRetryPolicy(30*1000, 0, 0));
         queue.add(request);
 	}
 

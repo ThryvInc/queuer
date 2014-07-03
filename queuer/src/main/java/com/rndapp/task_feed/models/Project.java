@@ -48,27 +48,18 @@ public class Project implements Serializable{
 
     public String getFirstTaskText(){
         String output = null;
-        if (tasks.size() != 0){
-            for (Task task : tasks){
-                if (!task.isFinished()) {
-                    output = task.getName();
-                    break;
-                }
+        for (Task task : tasks){
+            if (!task.isFinished()) {
+                output = task.getName();
+                break;
             }
         }
         return output;
     }
 
     public void addTaskToBeginning(Context context, RequestQueue queue, Task task){
-        TaskDataSource source = new TaskDataSource(context);
-        source.open();
-        task = source.createTask(task.getName(),
-                this.getId(),
-                task.getId(),
-                task.getOrder(),
-                task.getPoints(),
-                task.isFinished());
-        source.close();
+        task.setProject_id(this.getId());
+        task = Task.addTaskToDatabase(context, task);
         tasks.add(0,task);
         updatePositions(context, queue, new Response.Listener() {
             @Override
@@ -84,14 +75,10 @@ public class Project implements Serializable{
     }
 
     public void addTaskRespectingOrder(Context context, Task task){
+        task.setProject_id(this.getId());
         TaskDataSource source = new TaskDataSource(context);
         source.open();
-        task = source.createTask(task.getName(),
-                this.getId(),
-                task.getId(),
-                task.getOrder(),
-                task.getPoints(),
-                task.isFinished());
+        task = source.createTask(task);
         source.close();
         tasks.add(0,task);
         sortTasks();
@@ -112,6 +99,7 @@ public class Project implements Serializable{
 
     public void markTaskAtPositionAsFinished(Context context, RequestQueue queue, int position){
         tasks.set(position, Task.markAsFinished(context, queue, tasks.get(position)));
+        updatePositions(context, queue, null, null);
     }
 
 //    public void deleteTask(Context context, int position){
@@ -139,16 +127,18 @@ public class Project implements Serializable{
     private void updatePositions(Context context, RequestQueue queue,
                                  Response.Listener listener,
                                  Response.ErrorListener errorListener){
+        ArrayList<Task> tasksToUpdate = new ArrayList<Task>();
         for (Task task : tasks){
             if (task.getOrder() != tasks.indexOf(task)){
                 task.setOrder(tasks.indexOf(task));
-                Task.updateTask(context, task);
+                tasksToUpdate.add(task);
 
                 ServerCommunicator.updateTask(context,
                         queue,
                         task, listener, errorListener);
             }
         }
+        Task.updateTasks(context, tasksToUpdate);
     }
 
     public void sortTasks(){
@@ -167,7 +157,7 @@ public class Project implements Serializable{
     }
 
     public boolean isEmpty(){
-        return tasks.size() == 0 || isHidden();
+        return getFirstTaskText() == null || isHidden();
     }
 
     public boolean isUpToDateWithServerProject(Task serverProject){

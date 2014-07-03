@@ -1,16 +1,12 @@
 package com.rndapp.task_feed.activities;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -22,11 +18,8 @@ import com.rndapp.task_feed.QueuerApplication;
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.api.ServerCommunicator;
 import com.rndapp.task_feed.models.ActivityUtils;
-import com.rndapp.task_feed.models.SignInModel;
 import com.rndapp.task_feed.models.User;
 import org.json.JSONObject;
-
-import java.util.Calendar;
 
 /**
  * Created with IntelliJ IDEA.
@@ -34,7 +27,7 @@ import java.util.Calendar;
  * Date: 7/13/13
  * Time: 2:12 PM
  */
-public class LoginActivity extends ActionBarActivity implements View.OnClickListener{
+public class LoginActivity extends Activity implements View.OnClickListener{
     private static final String USERNAME_KEY = "username";
     private static final String PASSWORED_KEY = "password";
     private static final String REMEMBER_KEY = "remember";

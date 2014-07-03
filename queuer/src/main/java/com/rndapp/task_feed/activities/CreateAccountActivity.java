@@ -1,5 +1,6 @@
 package com.rndapp.task_feed.activities;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -25,7 +26,7 @@ import org.json.JSONObject;
  * Date: 7/13/13
  * Time: 2:28 PM
  */
-public class CreateAccountActivity extends ActionBarActivity implements View.OnClickListener{
+public class CreateAccountActivity extends Activity implements View.OnClickListener{
     private User user;
 
     @Override

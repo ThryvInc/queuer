@@ -1,15 +1,15 @@
 package com.rndapp.task_feed.activities;
 
+import android.app.ActionBar;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,10 +35,8 @@ import org.json.JSONObject;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
-public class FeedActivity extends ActionBarActivity implements ProjectDisplayer {
+public class FeedActivity extends Activity implements ProjectDisplayer {
     private static final String TAG = "FeedActivity";
     private DrawerLayout drawerLayout;
     private ListView drawerList;
@@ -200,7 +198,7 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
         }
 
         // Set up the action bar to show a dropdown list.
-        final ActionBar actionBar = getSupportActionBar();
+        final ActionBar actionBar = getActionBar();
         actionBar.setDisplayShowTitleEnabled(true);
 
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -218,18 +216,18 @@ public class FeedActivity extends ActionBarActivity implements ProjectDisplayer 
             /** Called when a drawer has settled in a completely closed state. */
             public void onDrawerClosed(View view) {
                 super.onDrawerClosed(view);
-                getSupportActionBar().setTitle(R.string.app_name);
+                getActionBar().setTitle(R.string.app_name);
             }
 
             /** Called when a drawer has settled in a completely open state. */
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
-                getSupportActionBar().setTitle(R.string.app_name);
+                getActionBar().setTitle(R.string.app_name);
             }
         };
 
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeButtonEnabled(true);
+        getActionBar().setDisplayHomeAsUpEnabled(true);
+        getActionBar().setHomeButtonEnabled(true);
 
         drawerLayout.setDrawerListener(drawerToggle);
 
