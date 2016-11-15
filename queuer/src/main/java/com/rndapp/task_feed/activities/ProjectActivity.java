@@ -6,11 +6,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 
@@ -22,16 +23,16 @@ import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.adapters.TaskListAdapter;
 import com.rndapp.task_feed.api.ServerCommunicator;
 import com.rndapp.task_feed.interfaces.TaskDisplayer;
+import com.rndapp.task_feed.listeners.OnTaskClickedListener;
 import com.rndapp.task_feed.models.Project;
 import com.rndapp.task_feed.models.Task;
-import com.rndapp.task_feed.views.EnhancedListView;
 
 import org.json.JSONObject;
 
 /**
  * Created by eschrock on 2/4/14.
  */
-public class ProjectActivity extends Activity implements TaskDisplayer {
+public class ProjectActivity extends Activity implements TaskDisplayer, OnTaskClickedListener {
     private Project project;
     private TaskListAdapter adapter;
     /**
@@ -39,6 +40,28 @@ public class ProjectActivity extends Activity implements TaskDisplayer {
      * fragment.
      */
     public static final String ARG_PROJECT = "project";
+    private ItemTouchHelper.SimpleCallback simpleItemTouchCallback =
+            new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                    ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+                @Override
+                public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                    adapter.swapElements(viewHolder.getAdapterPosition(), target.getAdapterPosition());
+                    adapter.notifyItemMoved(viewHolder.getAdapterPosition(), target.getAdapterPosition());
+                    return true;
+                }
+
+                @Override
+                public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+                    project.markTaskAtPositionAsFinished(ProjectActivity.this, ((QueuerApplication)getApplication()).getRequestQueue(), adjustPosition(viewHolder.getAdapterPosition()));
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            adapter.notifyDataSetChanged();
+                            adapter.removeFinishedTasks();
+                        }
+                    });
+                }
+            };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -71,32 +94,15 @@ public class ProjectActivity extends Activity implements TaskDisplayer {
             rootView.setBackgroundColor(project.getColor());
         }
 
-        adapter = new TaskListAdapter(this, project.getTasks());
+        adapter = new TaskListAdapter(this, project.getTasks(), this);
 
-        EnhancedListView lv = (EnhancedListView)findViewById(R.id.task_list_view);
+        LinearLayoutManager manager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+        RecyclerView lv = (RecyclerView)findViewById(R.id.task_list_view);
+        lv.setLayoutManager(manager);
         lv.setAdapter(adapter);
 
-        lv.setDismissCallback(new EnhancedListView.OnDismissCallback() {
-            @Override
-            public EnhancedListView.Undoable onDismiss(EnhancedListView listView, int position) {
-                project.markTaskAtPositionAsFinished(ProjectActivity.this, ((QueuerApplication)getApplication()).getRequestQueue(), adjustPosition(position));
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        adapter.notifyDataSetChanged();
-                    }
-                });
-                return null;
-            }
-        });
-        lv.enableSwipeToDismiss();
-
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                editTask(project.getTask(adjustPosition(position)));
-            }
-        });
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
+        itemTouchHelper.attachToRecyclerView(lv);
     }
 
     private int adjustPosition(int position){
@@ -408,5 +414,10 @@ public class ProjectActivity extends Activity implements TaskDisplayer {
                 adapter.notifyDataSetChanged();
             }
         });
+    }
+
+    @Override
+    public void onTaskClicked(Task task) {
+        editTask(task);
     }
 }

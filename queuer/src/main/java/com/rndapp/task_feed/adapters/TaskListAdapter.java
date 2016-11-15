@@ -1,15 +1,17 @@
 package com.rndapp.task_feed.adapters;
 
 import android.content.Context;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.TextView;
+
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.interfaces.RearrangementListener;
 import com.rndapp.task_feed.interfaces.TaskDisplayer;
+import com.rndapp.task_feed.listeners.OnTaskClickedListener;
 import com.rndapp.task_feed.models.Task;
+import com.rndapp.task_feed.views.TaskViewHolder;
 
 import java.util.ArrayList;
 
@@ -20,38 +22,21 @@ import java.util.ArrayList;
  * Time: 9:53 AM
  *
  */
-public class TaskListAdapter extends BaseAdapter implements RearrangementListener {
-    public static final int INVALID_ID = -1;
+public class TaskListAdapter extends RecyclerView.Adapter<TaskViewHolder> implements RearrangementListener {
     private Context context;
     private TaskDisplayer displayer;
+    private OnTaskClickedListener listener;
     private ArrayList<Task> tasks;
 
-    public TaskListAdapter(TaskDisplayer displayer, ArrayList<Task> tasks){
+    public TaskListAdapter(TaskDisplayer displayer, ArrayList<Task> tasks, OnTaskClickedListener listener){
         this.context = displayer.getContext();
         this.displayer = displayer;
+        this.listener = listener;
         this.tasks = tasks;
         removeFinishedTasks();
     }
 
-    @Override
-    public Task getItem(int position) {
-        return tasks.get(position);
-    }
-
-    @Override
-    public long getItemId(int position) {
-        if (position < 0 || position >= tasks.size()) {
-            return INVALID_ID;
-        }
-        return getItem(position).getId();
-    }
-
-    @Override
-    public int getCount(){
-        return tasks.size();
-    }
-
-    private void removeFinishedTasks(){
+    public void removeFinishedTasks(){
         for (Task task : tasks){
             if (task.isFinished()){
                 tasks.remove(task);
@@ -62,27 +47,28 @@ public class TaskListAdapter extends BaseAdapter implements RearrangementListene
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        if (convertView == null){
-            LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            convertView = inflater.inflate(R.layout.task_list_item, null);
-        }
+    public TaskViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        View view = inflater.inflate(R.layout.task_list_item, parent, false);
 
-        Task task = getItem(position);
-        ((TextView)convertView.findViewById(R.id.tv_task)).setText(task.getName());
-        return convertView;
+        return new TaskViewHolder(view, listener);
     }
 
     @Override
-    public void notifyDataSetChanged() {
-        super.notifyDataSetChanged();
-        removeFinishedTasks();
+    public void onBindViewHolder(TaskViewHolder holder, int position) {
+        holder.setTask(tasks.get(position));
     }
 
     @Override
-    public void onStartedRearranging() {
-
+    public int getItemCount() {
+        return tasks.size();
     }
+
+//    @Override
+//    public void notifyDataSetChanged() {
+//        super.notifyDataSetChanged();
+//        removeFinishedTasks();
+//    }
 
     @Override
     public void swapElements(int indexOne, int indexTwo) {
@@ -96,13 +82,13 @@ public class TaskListAdapter extends BaseAdapter implements RearrangementListene
         tasks.add(indexTwo, temp1);
     }
 
-    @Override
-    public void onFinishedRearranging() {
-        for (int i = 0; i<tasks.size(); i++){
-            Task task = tasks.get(i);
-            if (task.getOrder() != i){
-                displayer.taskChangedOrder(task);
-            }
-        }
-    }
+//    @Override
+//    public void onFinishedRearranging() {
+//        for (int i = 0; i<tasks.size(); i++){
+//            Task task = tasks.get(i);
+//            if (task.getOrder() != i){
+//                displayer.taskChangedOrder(task);
+//            }
+//        }
+//    }
 }

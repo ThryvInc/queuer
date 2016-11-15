@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/project_root_view"
         android:orientation="vertical"
         android:layout_width="match_parent"
@@ -14,10 +14,12 @@
         android:indeterminate="true"
         android:visibility="gone"/>
 
-        <com.rndapp.task_feed.views.EnhancedListView
-            android:id="@+id/task_list_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            />
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/task_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentBottom="true"
+        android:layout_below="@+id/proj_loading_bar"
+        />
 
-    </LinearLayout>
+    </RelativeLayout>
