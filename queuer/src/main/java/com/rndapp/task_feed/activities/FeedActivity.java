@@ -43,7 +43,7 @@ public class FeedActivity extends Activity implements ProjectDisplayer, OnProjec
     private DrawerLayout drawerLayout;
     private ListView drawerList;
     private ActionBarDrawerToggle drawerToggle;
-    public ArrayList<Project> projects;
+    public ArrayList<Project> projects = new ArrayList<>();
     private ProjectListAdapter adapter;
     ItemTouchHelper.SimpleCallback simpleItemTouchCallback =
             new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,
@@ -69,36 +69,28 @@ public class FeedActivity extends Activity implements ProjectDisplayer, OnProjec
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_feed);
 
-        //load projects
-        projects = ActivityUtils.loadProjectsFromDatabase(this);
-        adapter = new ProjectListAdapter(projects, this);
-
         setupForAsync();
         ActivityUtils.downloadProjectsFromServer(this,
                 ((QueuerApplication)getApplication()).getRequestQueue(),
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray json) {
-                        Type listOfProjects = new TypeToken<List<Project>>() {
-                        }.getType();
+
+                        Type listOfProjects = new TypeToken<List<Project>>() {}.getType();
                         final ArrayList<Project> serverProjects = new Gson().fromJson(json.toString(), listOfProjects);
-                        projects = ActivityUtils.syncProjectsWithServer(FeedActivity.this,
-                                ((QueuerApplication) getApplication()).getRequestQueue(),
-                                projects, serverProjects);
+                        if (projects == null){
+                            projects = serverProjects;
+                        }else {
+                            projects.removeAll(projects);
+                            projects.addAll(serverProjects);
+                        }
                         setupNav(projects);
-                        adapter.setProjects(projects);
-                        new Thread(new Runnable() {
-                            public void run() {
-                                projects = ActivityUtils.syncProjectsWithDatabase(FeedActivity.this,
-                                        ((QueuerApplication) getApplication()).getRequestQueue(), projects, serverProjects);
-                                runOnUiThread(new Runnable() {
-                                    public void run() {
-                                        adapter.setProjects(projects);
-                                        asyncEnded();
-                                    }
-                                });
-                            }
-                        }).start();
+                        if (adapter == null){
+                            adapter = new ProjectListAdapter(projects, FeedActivity.this);
+                        }else {
+                            adapter.notifyDataSetChanged();
+                        }
+                        asyncEnded();
                     }
 
                 }, new Response.ErrorListener() {
@@ -114,7 +106,7 @@ public class FeedActivity extends Activity implements ProjectDisplayer, OnProjec
         RecyclerView lv = (RecyclerView) findViewById(R.id.project_list_view);
         lv.setLayoutManager(manager);
 
-        //adapter = new ProjectListAdapter(this, projects);
+        adapter = new ProjectListAdapter(projects, this);
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
         itemTouchHelper.attachToRecyclerView(lv);
 
@@ -124,13 +116,7 @@ public class FeedActivity extends Activity implements ProjectDisplayer, OnProjec
     @Override
     protected void onResume() {
         super.onResume();
-
-        //load projects
-        projects = ActivityUtils.loadProjectsFromDatabase(this);
-
-        setupNav(null);
-
-        adapter.setProjects(projects);
+//        setupNav(null);
     }
 
     private void startProjectActivity(Project project){
@@ -323,7 +309,6 @@ public class FeedActivity extends Activity implements ProjectDisplayer, OnProjec
                                             @Override
                                             public void onResponse(JSONObject o) {
                                                 Project project = new Gson().fromJson(o.toString(), Project.class);
-                                                project = Project.addProjectToDatabase(getApplicationContext(), project);
                                                 projects.add(project);
                                                 setupNav(projects);
                                                 Intent intent = new Intent(FeedActivity.this, ProjectActivity.class);

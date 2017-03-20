@@ -6,12 +6,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
+
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.broadcast_receivers.ListWidgetProvider;
-import com.rndapp.task_feed.data.ProjectDataSource;
-import com.rndapp.task_feed.data.TaskDataSource;
 import com.rndapp.task_feed.models.Project;
-import com.rndapp.task_feed.models.Task;
 
 import java.util.ArrayList;
 
@@ -25,39 +23,11 @@ public class ProjectItemFactory implements RemoteViewsService.RemoteViewsFactory
         appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
     }
 
-    private void loadProjects() {
-        //load projects
-        ProjectDataSource projectDataSource = new ProjectDataSource(context);
-        projectDataSource.open();
-        projects = projectDataSource.getAllProjects();
-        projectDataSource.close();
-
-        //load tasks
-        TaskDataSource taskDataSource = new TaskDataSource(context);
-        taskDataSource.open();
-        ArrayList<Task> tasks = taskDataSource.getAllTasks();
-        taskDataSource.close();
-
-        //associate
-        for (Project project : projects) {
-            for (Task task : tasks) {
-                if (task.getProject_id() == project.getId()) {
-                    project.getTasks().add(task);
-                }
-            }
-        }
-
-        //sort
-        for (Project project : projects) {
-            project.sortTasks();
-        }
-    }
-
     @Override public void onCreate() {}
 
     @Override public void onDestroy() {}
 
-    @Override public int getCount() {return projects.size();}
+    @Override public int getCount() {return projects == null ? 0 : projects.size();}
 
     @Override
     public RemoteViews getViewAt(int position) {
@@ -85,5 +55,5 @@ public class ProjectItemFactory implements RemoteViewsService.RemoteViewsFactory
 
     @Override public boolean hasStableIds() {return true;}
 
-    @Override public void onDataSetChanged() {loadProjects();}
+    @Override public void onDataSetChanged() {}
 }

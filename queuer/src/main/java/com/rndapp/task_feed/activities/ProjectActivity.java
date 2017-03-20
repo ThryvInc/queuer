@@ -219,7 +219,6 @@ public class ProjectActivity extends Activity implements TaskDisplayer, OnTaskCl
                                             @Override
                                             public void onResponse(JSONObject o) {
                                                 Task task1 = new Gson().fromJson(o.toString(), Task.class);
-                                                Task.updateTask(ProjectActivity.this, task1);
                                                 taskUpdated(task1);
                                             }
                                         }, new Response.ErrorListener() {
@@ -322,7 +321,6 @@ public class ProjectActivity extends Activity implements TaskDisplayer, OnTaskCl
                                             @Override
                                             public void onResponse(JSONObject o) {
                                                 project = new Gson().fromJson(o.toString(), Project.class);
-                                                Project.updateProject(ProjectActivity.this, project);
                                             }
                                         }, new Response.ErrorListener() {
                                             @Override
@@ -343,7 +341,6 @@ public class ProjectActivity extends Activity implements TaskDisplayer, OnTaskCl
 
     private void hideProject(){
         project.setHidden(!project.isHidden());
-        Project.updateProject(this, project);
         finish();
     }
 
@@ -399,7 +396,6 @@ public class ProjectActivity extends Activity implements TaskDisplayer, OnTaskCl
                     @Override
                     public void onResponse(JSONObject o) {
                         Task task1 = new Gson().fromJson(o.toString(), Task.class);
-                        Task.updateTask(ProjectActivity.this, task1);
                         taskUpdated(task1);
                     }
                 }, new Response.ErrorListener() {

@@ -5,13 +5,7 @@ import android.content.Context;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.google.gson.Gson;
-import com.rndapp.task_feed.QueuerApplication;
 import com.rndapp.task_feed.api.ServerCommunicator;
-import com.rndapp.task_feed.data.ProjectDataSource;
-import com.rndapp.task_feed.data.TaskDataSource;
-
-import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -59,7 +53,6 @@ public class Project implements Serializable{
 
     public void addTaskToBeginning(Context context, RequestQueue queue, Task task){
         task.setProject_id(this.getId());
-        task = Task.addTaskToDatabase(context, task);
         tasks.add(0,task);
         updatePositions(context, queue, new Response.Listener() {
             @Override
@@ -76,10 +69,6 @@ public class Project implements Serializable{
 
     public void addTaskRespectingOrder(Context context, Task task){
         task.setProject_id(this.getId());
-        TaskDataSource source = new TaskDataSource(context);
-        source.open();
-        task = source.createTask(task);
-        source.close();
         tasks.add(0,task);
         sortTasks();
     }
@@ -117,7 +106,6 @@ public class Project implements Serializable{
         if (task.getOrder() != tasks.indexOf(task)){
             task.setOrder(tasks.indexOf(task));
         }
-        Task.updateTask(context, task);
         ServerCommunicator.updateTask(context,
                 queue,
                 task, listener, errorListener);
@@ -138,7 +126,6 @@ public class Project implements Serializable{
                         task, listener, errorListener);
             }
         }
-        Task.updateTasks(context, tasksToUpdate);
     }
 
     public void sortTasks(){
@@ -147,13 +134,6 @@ public class Project implements Serializable{
 
     public Task getTask(int position){
         return tasks.get(position);
-    }
-
-    public static void updateProject(Context context, Project project){
-        ProjectDataSource source = new ProjectDataSource(context);
-        source.open();
-        source.updateProject(project);
-        source.close();
     }
 
     public boolean isEmpty(){
@@ -182,23 +162,6 @@ public class Project implements Serializable{
                     listener,
                     errorListener
             );
-    }
-
-    public static Project addProjectToDatabase(Context context, Project project){
-        return Project.addProjectToDatabase(context,
-                project.getName(),
-                project.getColor(),
-                project.getId(),
-                project.getCreated_at(),
-                project.getUpdated_at());
-    }
-
-    public static Project addProjectToDatabase(Context context, String name, int color, int serverId, Date created, Date updated){
-        ProjectDataSource source = new ProjectDataSource(context);
-        source.open();
-        Project project = source.createProject(name, color, serverId, created, updated);
-        source.close();
-        return project;
     }
 
     @Override
