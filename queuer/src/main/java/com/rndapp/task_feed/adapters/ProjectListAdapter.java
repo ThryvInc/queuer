@@ -1,14 +1,15 @@
 package com.rndapp.task_feed.adapters;
 
-import android.content.Context;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.TextView;
+
 import com.rndapp.task_feed.R;
 import com.rndapp.task_feed.interfaces.RearrangementListener;
+import com.rndapp.task_feed.listeners.OnProjectClickedListener;
 import com.rndapp.task_feed.models.Project;
+import com.rndapp.task_feed.views.ProjectViewHolder;
 
 import java.util.ArrayList;
 
@@ -19,14 +20,13 @@ import java.util.ArrayList;
  * Time: 9:53 AM
  *
  */
-public class ProjectListAdapter extends BaseAdapter implements RearrangementListener{
-    public static final int INVALID_ID = -1;
-    private Context context;
+public class ProjectListAdapter extends RecyclerView.Adapter<ProjectViewHolder> implements RearrangementListener{
     private ArrayList<Project> projects;
+    private OnProjectClickedListener listener;
 
-    public ProjectListAdapter(Context context, ArrayList<Project> projects){
-        this.context = context;
+    public ProjectListAdapter(ArrayList<Project> projects, OnProjectClickedListener listener){
         this.projects = (ArrayList<Project>) projects.clone();
+        this.listener = listener;
 
         removeEmptyProjects();
     }
@@ -48,45 +48,20 @@ public class ProjectListAdapter extends BaseAdapter implements RearrangementList
     }
 
     @Override
-    public int getCount() {
+    public ProjectViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        View view = inflater.inflate(R.layout.project_list_item, parent, false);
+        return new ProjectViewHolder(view, listener);
+    }
+
+    @Override
+    public void onBindViewHolder(ProjectViewHolder holder, int position) {
+        holder.setProject(projects.get(position));
+    }
+
+    @Override
+    public int getItemCount() {
         return projects.size();
-    }
-
-    @Override
-    public Project getItem(int position) {
-        return projects.get(position);
-    }
-
-    @Override
-    public long getItemId(int position) {
-        if (position < projects.size() || position >= projects.size())
-            return INVALID_ID;
-        return projects.get(position).getId();
-    }
-
-    @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        if (convertView == null){
-            LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            convertView = inflater.inflate(R.layout.project_list_item, null);
-        }
-
-        Project project = getItem(position);
-        TextView tv = (TextView)convertView.findViewById(R.id.tv_project);
-        tv.setText(project.getName() + ": " + project.getFirstTaskText());
-        tv.setBackgroundColor(project.getColor());
-        return convertView;
-    }
-
-    @Override
-    public void notifyDataSetChanged() {
-        super.notifyDataSetChanged();
-        removeEmptyProjects();
-    }
-
-    @Override
-    public void onStartedRearranging() {
-
     }
 
     @Override
@@ -99,18 +74,5 @@ public class ProjectListAdapter extends BaseAdapter implements RearrangementList
 
         projects.remove(indexTwo);
         projects.add(indexTwo, temp1);
-    }
-
-    @Override
-    public void onFinishedRearranging() {
-
-    }
-
-    public void remove(int position) {
-
-    }
-
-    public void insert(int position, Project item) {
-
     }
 }

@@ -10,7 +10,9 @@ import android.os.Bundle;
 
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,8 +28,8 @@ import com.rndapp.task_feed.adapters.NavAdapter;
 import com.rndapp.task_feed.adapters.ProjectListAdapter;
 import com.rndapp.task_feed.broadcast_receivers.ListWidgetProvider;
 import com.rndapp.task_feed.interfaces.ProjectDisplayer;
+import com.rndapp.task_feed.listeners.OnProjectClickedListener;
 import com.rndapp.task_feed.models.*;
-import com.rndapp.task_feed.views.EnhancedListView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,22 +38,36 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FeedActivity extends Activity implements ProjectDisplayer {
+public class FeedActivity extends Activity implements ProjectDisplayer, OnProjectClickedListener {
     private static final String TAG = "FeedActivity";
     private DrawerLayout drawerLayout;
     private ListView drawerList;
     private ActionBarDrawerToggle drawerToggle;
-    public ArrayList<Project> projects;
+    public ArrayList<Project> projects = new ArrayList<>();
     private ProjectListAdapter adapter;
+    ItemTouchHelper.SimpleCallback simpleItemTouchCallback =
+            new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                    ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            adapter.swapElements(viewHolder.getAdapterPosition(), target.getAdapterPosition());
+            adapter.notifyItemMoved(viewHolder.getAdapterPosition(), target.getAdapterPosition());
+            return true;
+        }
+
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+            removeItemFromProject(adjustPosition(viewHolder.getAdapterPosition()));
+            adapter.removeEmptyProjects();
+            adapter.notifyDataSetChanged();
+        }
+    };
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_feed);
-
-        //load projects
-        projects = ActivityUtils.loadProjectsFromDatabase(this);
-        adapter = new ProjectListAdapter(FeedActivity.this, projects);
 
         setupForAsync();
         ActivityUtils.downloadProjectsFromServer(this,
@@ -59,26 +75,22 @@ public class FeedActivity extends Activity implements ProjectDisplayer {
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray json) {
-                        Type listOfProjects = new TypeToken<List<Project>>() {
-                        }.getType();
+
+                        Type listOfProjects = new TypeToken<List<Project>>() {}.getType();
                         final ArrayList<Project> serverProjects = new Gson().fromJson(json.toString(), listOfProjects);
-                        projects = ActivityUtils.syncProjectsWithServer(FeedActivity.this,
-                                ((QueuerApplication) getApplication()).getRequestQueue(),
-                                projects, serverProjects);
+                        if (projects == null){
+                            projects = serverProjects;
+                        }else {
+                            projects.removeAll(projects);
+                            projects.addAll(serverProjects);
+                        }
                         setupNav(projects);
-                        adapter.setProjects(projects);
-                        new Thread(new Runnable() {
-                            public void run() {
-                                projects = ActivityUtils.syncProjectsWithDatabase(FeedActivity.this,
-                                        ((QueuerApplication) getApplication()).getRequestQueue(), projects, serverProjects);
-                                runOnUiThread(new Runnable() {
-                                    public void run() {
-                                        adapter.setProjects(projects);
-                                        asyncEnded();
-                                    }
-                                });
-                            }
-                        }).start();
+                        if (adapter == null){
+                            adapter = new ProjectListAdapter(projects, FeedActivity.this);
+                        }else {
+                            adapter.notifyDataSetChanged();
+                        }
+                        asyncEnded();
                     }
 
                 }, new Response.ErrorListener() {
@@ -90,36 +102,13 @@ public class FeedActivity extends Activity implements ProjectDisplayer {
                 }
         );
 
-        EnhancedListView lv = (EnhancedListView)findViewById(R.id.project_list_view);
+        LinearLayoutManager manager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+        RecyclerView lv = (RecyclerView) findViewById(R.id.project_list_view);
+        lv.setLayoutManager(manager);
 
-        //adapter = new ProjectListAdapter(this, projects);
-
-        lv.setDismissCallback(new EnhancedListView.OnDismissCallback() {
-            /**
-             * This method will be called when the user swiped a way or deleted it via
-             * {@link EnhancedListView#delete(int)}.
-             *
-             * @param listView The {@link EnhancedListView} the item has been deleted from.
-             * @param position The position of the item to delete from your adapter.
-             * @return An {@link EnhancedListView.Undoable}, if you want
-             *      to give the user the possibility to undo the deletion.
-             */
-            @Override
-            public EnhancedListView.Undoable onDismiss(EnhancedListView listView, final int position) {
-                removeItemFromProject(adjustPosition(position));
-                adapter.notifyDataSetChanged();
-                return null;
-            }
-        });
-
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                startProjectActivity(projects.get(adjustPosition(position)));
-            }
-        });
-
-        lv.enableSwipeToDismiss();
+        adapter = new ProjectListAdapter(projects, this);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
+        itemTouchHelper.attachToRecyclerView(lv);
 
         lv.setAdapter(adapter);
 	}
@@ -127,13 +116,7 @@ public class FeedActivity extends Activity implements ProjectDisplayer {
     @Override
     protected void onResume() {
         super.onResume();
-
-        //load projects
-        projects = ActivityUtils.loadProjectsFromDatabase(this);
-
-        setupNav(null);
-
-        adapter.setProjects(projects);
+//        setupNav(null);
     }
 
     private void startProjectActivity(Project project){
@@ -326,7 +309,6 @@ public class FeedActivity extends Activity implements ProjectDisplayer {
                                             @Override
                                             public void onResponse(JSONObject o) {
                                                 Project project = new Gson().fromJson(o.toString(), Project.class);
-                                                project = Project.addProjectToDatabase(getApplicationContext(), project);
                                                 projects.add(project);
                                                 setupNav(projects);
                                                 Intent intent = new Intent(FeedActivity.this, ProjectActivity.class);
@@ -361,5 +343,10 @@ public class FeedActivity extends Activity implements ProjectDisplayer {
         } catch (PendingIntent.CanceledException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onProjectClicked(Project project) {
+        startProjectActivity(project);
     }
 }
