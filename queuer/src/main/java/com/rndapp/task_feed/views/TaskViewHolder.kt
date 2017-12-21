@@ -17,7 +17,7 @@ class TaskViewHolder(itemView: View, private val listener: OnTaskClickedListener
     private var task: Task? = null
 
     init {
-        tv = itemView.findViewById(R.id.tv_task) as TextView
+        tv = itemView.findViewById<TextView>(R.id.textView) as TextView
 
         itemView.setOnClickListener { this@TaskViewHolder.listener.onTaskClicked(task!!) }
     }

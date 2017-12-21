@@ -1,24 +1,16 @@
 package com.rndapp.task_feed.activities
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.support.v7.app.ActionBarActivity
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
-
 import com.android.volley.Response
-import com.android.volley.VolleyError
 import com.google.gson.Gson
-import com.rndapp.task_feed.QueuerApplication
 import com.rndapp.task_feed.R
-import com.rndapp.task_feed.api.ServerCommunicator
-import com.rndapp.task_feed.api.VolleyManager
-import com.rndapp.task_feed.models.ActivityUtils
+import com.rndapp.task_feed.managers.SessionManager
 import com.rndapp.task_feed.models.User
 import org.json.JSONObject
 
@@ -43,21 +35,19 @@ class CreateAccountActivity : AppCompatActivity(), View.OnClickListener {
         val passField = findViewById(R.id.password_field) as EditText
         if (userField.text.toString() != "" && passField.text.toString() != "") {
             findViewById(R.id.progress_bar).visibility = View.VISIBLE
-            ServerCommunicator.createAccount(this, VolleyManager.queue!!,
-                    userField.text.toString(), passField.text.toString(),
+            SessionManager.createAccount(userField.text.toString(), passField.text.toString(),
                     object : Response.Listener<JSONObject> {
                         internal var errored: Boolean = false
                         internal var errorText: String = ""
 
                         override fun onResponse(jsob: JSONObject) {
                             try {
-                                Log.d("Received from /sessions", jsob.toString())
                                 if (jsob.has("api_key") && jsob.getString("api_key") != null) {
                                     val apiKey = jsob.getString("api_key")
-                                    ActivityUtils.saveApiKey(this@CreateAccountActivity, apiKey)
+                                    SessionManager.saveApiKey(this@CreateAccountActivity, apiKey)
                                     //create user using Gson
                                     user = Gson().fromJson<User>(jsob.toString(), User::class.java!!)
-                                    ActivityUtils.saveUserId(this@CreateAccountActivity, user!!.id)
+                                    SessionManager.saveUserId(this@CreateAccountActivity, user!!.id)
                                 } else if (jsob.has("errors")) {
                                     //error
                                     errored = true

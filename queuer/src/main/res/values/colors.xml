@@ -12,21 +12,23 @@
     <color name="heading">#000</color>
     <color name="rare">#642b84</color>
     
-    <color name="smog">#ff464D5C</color>
+    <color name="smog">#e0e0e0</color>
     <color name="green">#31e1a3</color>
     <color name="darker_green">#19ac79</color>
-    <color name="goldenrod">#ffFAFAD2</color>
-    <color name="red">#FF4545</color>
-    <color name="blue">#009ACD</color>
-    <color name="yellow">#F7F730</color>
-    <color name="orange">#FF904F</color>
-    <color name="plum">#9B30FF</color>
-    <color name="turquoise">#01C5BB</color>
-
-    <!-- EnhancedListView -->
-    <color name="btn_pressed">#ff33b5e5</color>
-    <color name="btn_focused">#ff0099cc</color>
-    <color name="btn_normal">#00000000</color>
+    <color name="goldenrod">#FAFAD2</color>
+    <color name="dark_goldenrod">#b0b094</color>
+    <color name="red">#e03174</color>
+    <color name="dark_red">#99214f</color>
+    <color name="blue">#31b5e0</color>
+    <color name="dark_blue">#217c99</color>
+    <color name="yellow">#e0e031</color>
+    <color name="dark_yellow">#999921</color>
+    <color name="orange">#e09231</color>
+    <color name="dark_orange">#996421</color>
+    <color name="plum">#8c31e0</color>
+    <color name="dark_plum">#602199</color>
+    <color name="turquoise">#31e0d7</color>
+    <color name="dark_turquoise">#219993</color>
 
     <color name="popup_bg_color">#EE666666</color>
     <color name="separator_color">#BBBBBB</color>

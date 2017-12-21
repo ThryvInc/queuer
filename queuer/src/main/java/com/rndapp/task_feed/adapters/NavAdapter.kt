@@ -31,16 +31,15 @@ class NavAdapter(private val context: Context, private val projects: ArrayList<P
         return projects[position].id.toLong()
     }
 
-    //    @Nullable
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         var convertView = convertView
         if (convertView == null) {
             val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-            convertView = inflater.inflate(R.layout.task_list_item, null)
+            convertView = inflater.inflate(R.layout.item, null)
         }
 
         val project = getItem(position)
-        val tv = convertView!!.findViewById(R.id.tv_task) as TextView
+        val tv = convertView!!.findViewById<TextView>(R.id.textView)
         tv.text = project.name
         tv.setTextColor(project.color)
         return convertView

@@ -2,24 +2,20 @@ package com.rndapp.task_feed.activities
 
 import android.app.Activity
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
-import android.support.v7.app.ActionBarActivity
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
+import android.text.TextUtils
 import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.TextView
-
 import com.android.volley.Response
-import com.android.volley.VolleyError
 import com.google.gson.Gson
-import com.rndapp.task_feed.QueuerApplication
 import com.rndapp.task_feed.R
-import com.rndapp.task_feed.api.ServerCommunicator
+import com.rndapp.task_feed.api.LoginRequest
 import com.rndapp.task_feed.api.VolleyManager
-import com.rndapp.task_feed.models.ActivityUtils
+import com.rndapp.task_feed.managers.SessionManager
+import com.rndapp.task_feed.models.SignInModel
 import com.rndapp.task_feed.models.User
 import org.json.JSONObject
 
@@ -37,14 +33,19 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     internal var passField: EditText? = null
     internal var remember: CheckBox? = null
 
+    internal var errored: Boolean = false
+    internal var errorText: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        val sp = getSharedPreferences(ServerCommunicator.API_KEY_PREFERENCE, Activity.MODE_PRIVATE)
-        val apiKey = sp.getString("api_key", "")
-        if (apiKey != "") {
-            startActivity(Intent(this, FeedActivity::class.java))
+        val sp = getSharedPreferences(SessionManager.API_KEY_PREFERENCE, Activity.MODE_PRIVATE)
+        SessionManager.preferences = sp
+
+        val apiKey = SessionManager.getApiKey()
+        if (!TextUtils.isEmpty(apiKey)) {
+            startActivity(Intent(this, SprintsActivity::class.java))
             finish()
         }
 
@@ -52,9 +53,9 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         passField = findViewById(R.id.password_field) as EditText
         remember = findViewById(R.id.remember_me_checkbox) as CheckBox
 
-        val savedUsername = ActivityUtils.getUserCredential(this, USERNAME_KEY, "-1")
-        val savedPassword = ActivityUtils.getUserCredential(this, PASSWORED_KEY, "-1")
-        val saveCreds = ActivityUtils.getCredentialBoolean(this, REMEMBER_KEY, false)
+        val savedUsername = SessionManager.getUserCredential(this, USERNAME_KEY, "-1")
+        val savedPassword = SessionManager.getUserCredential(this, PASSWORED_KEY, "-1")
+        val saveCreds = SessionManager.getCredentialBoolean(this, REMEMBER_KEY, false)
 
         if (saveCreds) {
             userField!!.setText(savedUsername)
@@ -71,48 +72,15 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         when (view.id) {
             R.id.login_button -> if (userField!!.text.toString() != "" && passField!!.text.toString() != "") {
                 findViewById(R.id.progress_bar).visibility = View.VISIBLE
-                ServerCommunicator.login(this, VolleyManager.queue!!,
-                        userField!!.text.toString(), passField!!.text.toString(),
+                val signInModel = SignInModel()
+                signInModel.username = userField!!.text.toString()
+                signInModel.password = passField!!.text.toString()
+                val request = LoginRequest(signInModel,
                         object : Response.Listener<JSONObject> {
-                            internal var errored: Boolean = false
-                            internal var errorText: String? = null
 
                             override fun onResponse(jsob: JSONObject) {
-                                try {
-                                    Log.d("Received from /sessions", jsob.toString())
-                                    if (jsob.has("api_key") && jsob.getString("api_key") != null) {
-                                        val apiKey = jsob.getString("api_key")
-                                        ActivityUtils.saveApiKey(this@LoginActivity, apiKey)
-                                        //create user using Gson
-                                        user = Gson().fromJson<User>(jsob.toString(), User::class.java!!)
-                                        ActivityUtils.saveUserId(this@LoginActivity, user!!.id)
-                                    } else if (jsob.has("errors")) {
-                                        //error
-                                        errored = true
-                                        errorText = jsob.getString("errors")
-                                    } else {
-                                        //error
-                                        errored = true
-                                        errorText = "Unknown Error"
-                                    }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    //error
-                                    errored = true
-                                    errorText = e.localizedMessage
-                                }
-
-                                runOnUiThread {
-                                    findViewById(R.id.progress_bar).visibility = View.GONE
-                                    //go to the next activity
-                                    if (!errored && user != null) {
-                                        this@LoginActivity
-                                                .startActivity(Intent(this@LoginActivity, FeedActivity::class.java))
-                                        this@LoginActivity.finish()
-                                    } else {
-                                        (findViewById(R.id.update) as TextView).text = errorText
-                                    }
-                                }
+                                handleApiKey(jsob)
+                                handleLogin(jsob)
                             }
                         }, Response.ErrorListener { volleyError ->
                     runOnUiThread {
@@ -120,14 +88,54 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                         (findViewById(R.id.update) as TextView).text = volleyError.localizedMessage
                     }
                 })
+                VolleyManager.queue?.add(request)
 
                 if (remember!!.isChecked) {
-                    ActivityUtils.setCredentialBoolean(this, REMEMBER_KEY, true)
-                    ActivityUtils.saveUserCredential(this, USERNAME_KEY, userField!!.text.toString())
-                    ActivityUtils.saveUserCredential(this, PASSWORED_KEY, passField!!.text.toString())
+                    SessionManager.setCredentialBoolean(this, REMEMBER_KEY, true)
+                    SessionManager.saveUserCredential(this, USERNAME_KEY, userField!!.text.toString())
+                    SessionManager.saveUserCredential(this, PASSWORED_KEY, passField!!.text.toString())
                 }
             }
             R.id.create_account_button -> startActivity(Intent(this, CreateAccountActivity::class.java))
+        }
+    }
+
+    fun handleApiKey(jsob: JSONObject) {
+        try {
+            if (jsob.has("api_key") && jsob.getString("api_key") != null) {
+                val apiKey = jsob.getString("api_key")
+                SessionManager.saveApiKey(this@LoginActivity, apiKey)
+                //create user using Gson
+                user = Gson().fromJson<User>(jsob.toString(), User::class.java!!)
+                SessionManager.saveUserId(this@LoginActivity, user!!.id)
+            } else if (jsob.has("errors")) {
+                //error
+                errored = true
+                errorText = jsob.getString("errors")
+            } else {
+                //error
+                errored = true
+                errorText = "Unknown Error"
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            //error
+            errored = true
+            errorText = e.localizedMessage
+        }
+    }
+
+    fun handleLogin(jsob: JSONObject) {
+        runOnUiThread {
+            findViewById(R.id.progress_bar).visibility = View.GONE
+            //go to the next activity
+            if (!errored && user != null) {
+                this@LoginActivity
+                        .startActivity(Intent(this@LoginActivity, SprintsActivity::class.java))
+                this@LoginActivity.finish()
+            } else {
+                (findViewById(R.id.update) as TextView).text = errorText
+            }
         }
     }
 

@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-
 import android.support.v4.app.ActionBarDrawerToggle
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.AppCompatActivity
@@ -15,45 +14,45 @@ import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ListView
 import com.android.volley.Response
 import com.android.volley.VolleyError
-
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.rndapp.task_feed.QueuerApplication
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.adapters.NavAdapter
-import com.rndapp.task_feed.adapters.ProjectListAdapter
+import com.rndapp.task_feed.adapters.ProjectsAdapter
+import com.rndapp.task_feed.api.CreateProjectRequest
+import com.rndapp.task_feed.api.ProjectsRequest
 import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.broadcast_receivers.ListWidgetProvider
 import com.rndapp.task_feed.interfaces.ProjectDisplayer
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
-import com.rndapp.task_feed.models.*
-import org.json.JSONArray
-import org.json.JSONObject
-
-import java.util.ArrayList
+import com.rndapp.task_feed.managers.SessionManager
+import com.rndapp.task_feed.models.Project
+import com.rndapp.task_feed.models.ProjectColor
+import java.util.*
 
 class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedListener {
     private var drawerLayout: DrawerLayout? = null
     private var drawerList: ListView? = null
     private var drawerToggle: ActionBarDrawerToggle? = null
-    var projects: ArrayList<Project>? = ArrayList()
-    private var adapter: ProjectListAdapter? = null
+    var projects: ArrayList<Project> = ArrayList()
+    private var adapter: ProjectsAdapter? = null
     internal var simpleItemTouchCallback: ItemTouchHelper.SimpleCallback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
 
         override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-            adapter!!.swapElements(viewHolder.adapterPosition, target.adapterPosition)
-            adapter!!.notifyItemMoved(viewHolder.adapterPosition, target.adapterPosition)
+            adapter?.swapElements(viewHolder.adapterPosition, target.adapterPosition)
+            adapter?.notifyItemMoved(viewHolder.adapterPosition, target.adapterPosition)
             return true
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
             removeItemFromProject(adjustPosition(viewHolder.adapterPosition))
-            adapter!!.removeEmptyProjects()
-            adapter!!.notifyDataSetChanged()
+//            adapter?.removeEmptyProjects()
+            adapter?.notifyDataSetChanged()
         }
     }
 
@@ -61,46 +60,44 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_feed)
 
+        refresh()
+
+        val manager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        val lv = findViewById(R.id.project_list_view) as RecyclerView
+        lv.layoutManager = manager
+
+        adapter = projects.let { ProjectsAdapter(it, this) }
+        lv.adapter = adapter
+
+        val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
+        itemTouchHelper.attachToRecyclerView(lv)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        setupNav(null)
+    }
+
+    private fun refresh() {
         setupForAsync()
-        ActivityUtils.downloadProjectsFromServer(this, VolleyManager.queue!!, object: Response.Listener<JSONArray> {
-            override fun onResponse(response: JSONArray?) {
-                val listOfProjects = object : TypeToken<List<Project>>() {}.type
-                val serverProjects = Gson().fromJson<ArrayList<Project>>(response.toString(), listOfProjects)
-                if (projects == null) {
-                    projects = serverProjects
-                } else {
-                    projects!!.removeAll(projects!!)
-                    projects!!.addAll(serverProjects)
-                }
-                setupNav(projects)
-                if (adapter == null) {
-                    adapter = ProjectListAdapter(projects, this@FeedActivity)
-                } else {
-                    adapter!!.notifyDataSetChanged()
-                }
-                asyncEnded()
+        val request = ProjectsRequest(Response.Listener { serverProjects ->
+            projects.removeAll(projects)
+            projects.addAll(serverProjects)
+            setupNav(projects)
+            if (adapter == null) {
+                adapter = ProjectsAdapter(projects, this@FeedActivity)
+            } else {
+                adapter?.projects = projects
+                adapter?.notifyDataSetChanged()
             }
+            asyncEnded()
         }, object: Response.ErrorListener {
             override fun onErrorResponse(error: VolleyError?) {
                 error!!.printStackTrace()
                 asyncEnded()
             }
         })
-
-        val manager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        val lv = findViewById(R.id.project_list_view) as RecyclerView
-        lv.layoutManager = manager
-
-        adapter = projects?.let { ProjectListAdapter(it, this) }
-        val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
-        itemTouchHelper.attachToRecyclerView(lv)
-
-        lv.adapter = adapter
-    }
-
-    override fun onResume() {
-        super.onResume()
-        //        setupNav(null);
+        VolleyManager.queue?.add(request)
     }
 
     private fun startProjectActivity(project: Project) {
@@ -111,16 +108,16 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
 
     private fun adjustPosition(position: Int): Int {
         var result = position
-        for (i in 0..result + 1 - 1) {
-            if (projects!![i].isEmpty || projects!![i].isHidden) {
-                result++
-            }
-        }
+//        for (i in 0..result + 1 - 1) {
+//            if (/*projects!![i] ||*/ projects!![i].isHidden) {
+//                result++
+//            }
+//        }
         return result
     }
 
     fun removeItemFromProject(position: Int) {
-        projects!![position].removeFirstTask(this, VolleyManager.queue!!)
+//        projects!![position].removeFirstTask(this, VolleyManager.queue!!)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -132,12 +129,13 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Pass the event to ActionBarDrawerToggle, if it returns
         // true, then it has handled the app icon touch event
-        if (drawerToggle!!.onOptionsItemSelected(item)) {
+        //TODO: Project list drawer
+        if (drawerToggle?.onOptionsItemSelected(item) ?: false) {
             return true
         }
         when (item.itemId) {
             R.id.action_add_project -> newProject()
-            R.id.action_logout -> ActivityUtils.logout(this)
+            R.id.action_logout -> SessionManager.logout(this)
         }
 
         return super.onOptionsItemSelected(item)
@@ -158,8 +156,7 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
         }
 
         // Set up the action bar to show a dropdown list.
-        val actionBar = actionBar
-        actionBar!!.setDisplayShowTitleEnabled(true)
+        actionBar?.setDisplayShowTitleEnabled(true)
 
         drawerLayout = findViewById(R.id.drawer_layout) as DrawerLayout
         drawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
@@ -176,26 +173,26 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
             /** Called when a drawer has settled in a completely closed state.  */
             override fun onDrawerClosed(view: View) {
                 super.onDrawerClosed(view)
-                getActionBar()!!.setTitle(R.string.app_name)
+                getActionBar()?.setTitle(R.string.app_name)
             }
 
             /** Called when a drawer has settled in a completely open state.  */
             override fun onDrawerOpened(drawerView: View) {
                 super.onDrawerOpened(drawerView)
-                getActionBar()!!.setTitle(R.string.app_name)
+                getActionBar()?.setTitle(R.string.app_name)
             }
         }
 
-        getActionBar()!!.setDisplayHomeAsUpEnabled(true)
-        getActionBar()!!.setHomeButtonEnabled(true)
+        getActionBar()?.setDisplayHomeAsUpEnabled(true)
+        getActionBar()?.setHomeButtonEnabled(true)
 
-        drawerLayout!!.setDrawerListener(drawerToggle)
+        drawerLayout?.setDrawerListener(drawerToggle)
 
         // Set the adapter for the list view
-        drawerList!!.adapter = NavAdapter(this, projects!!)
+        drawerList?.adapter = NavAdapter(this, projects!!)
 
         // Set the list's click listener
-        drawerList!!.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
+        drawerList?.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
             drawerList!!.setItemChecked(position, true)
             drawerLayout!!.closeDrawer(drawerList)
             startProjectActivity(projects!![position])
@@ -203,6 +200,7 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
     }
 
     internal var swatchColor: Int = 0
+    internal var swatchId: Int = R.color.goldenrod
     fun newProject() {
         val alertDialogBuilder = AlertDialog.Builder(this)
         // set title
@@ -210,48 +208,27 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
 
         val layout = layoutInflater.inflate(R.layout.new_project, null)
 
-        val taskTitle = layout.findViewById(R.id.projectName) as EditText
+        val taskTitle = layout.findViewById<EditText>(R.id.projectName)
 
-        val swatch = layout.findViewById(R.id.color_swatch)
+        val swatch: View = layout.findViewById(R.id.color_swatch)
 
-        val btnRed = layout.findViewById(R.id.btn_red) as Button
-        val btnBlue = layout.findViewById(R.id.btn_blue) as Button
-        val btnPlum = layout.findViewById(R.id.btn_plum) as Button
-        val btnGold = layout.findViewById(R.id.btn_yellow) as Button
-        val btnOrange = layout.findViewById(R.id.btn_orange) as Button
-        val btnGreen = layout.findViewById(R.id.btn_green) as Button
-        val btnTurquoise = layout.findViewById(R.id.btn_turquoise) as Button
+        val btnRed = layout.findViewById<Button>(R.id.btn_red)
+        val btnBlue = layout.findViewById<Button>(R.id.btn_blue)
+        val btnPlum = layout.findViewById<Button>(R.id.btn_plum)
+        val btnGold = layout.findViewById<Button>(R.id.btn_yellow)
+        val btnOrange = layout.findViewById<Button>(R.id.btn_orange)
+        val btnGreen = layout.findViewById<Button>(R.id.btn_green)
+        val btnTurquoise = layout.findViewById<Button>(R.id.btn_turquoise)
 
         val listener = View.OnClickListener { v ->
             when (v.id) {
-                R.id.btn_blue -> {
-                    swatchColor = resources.getColor(R.color.blue)
-                    swatch.setBackgroundColor(resources.getColor(R.color.blue))
-                }
-                R.id.btn_green -> {
-                    swatchColor = resources.getColor(R.color.green)
-                    swatch.setBackgroundColor(resources.getColor(R.color.green))
-                }
-                R.id.btn_orange -> {
-                    swatchColor = resources.getColor(R.color.orange)
-                    swatch.setBackgroundColor(resources.getColor(R.color.orange))
-                }
-                R.id.btn_plum -> {
-                    swatchColor = resources.getColor(R.color.plum)
-                    swatch.setBackgroundColor(resources.getColor(R.color.plum))
-                }
-                R.id.btn_red -> {
-                    swatchColor = resources.getColor(R.color.red)
-                    swatch.setBackgroundColor(resources.getColor(R.color.red))
-                }
-                R.id.btn_yellow -> {
-                    swatchColor = resources.getColor(R.color.yellow)
-                    swatch.setBackgroundColor(resources.getColor(R.color.yellow))
-                }
-                R.id.btn_turquoise -> {
-                    swatchColor = resources.getColor(R.color.turquoise)
-                    swatch.setBackgroundColor(resources.getColor(R.color.turquoise))
-                }
+                R.id.btn_blue -> setSwatch(R.color.blue, swatch)
+                R.id.btn_green -> setSwatch(R.color.green, swatch)
+                R.id.btn_orange -> setSwatch(R.color.orange, swatch)
+                R.id.btn_plum -> setSwatch(R.color.plum, swatch)
+                R.id.btn_red -> setSwatch(R.color.red, swatch)
+                R.id.btn_yellow -> setSwatch(R.color.yellow, swatch)
+                R.id.btn_turquoise -> setSwatch(R.color.turquoise, swatch)
             }
         }
 
@@ -273,24 +250,43 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
                 .setPositiveButton("Ok",
                         DialogInterface.OnClickListener { dialog, id ->
                             setupForAsync()
-                            Project.uploadProjectToServer(this@FeedActivity,
-                                    VolleyManager.queue!!,
-                                    Project(taskTitle.text.toString(), swatchColor),
-                                    { o: JSONObject ->
-                                        val project = Gson().fromJson<Project>(o.toString(), Project::class.java!!)
-                                        projects!!.add(project)
-                                        setupNav(projects)
-                                        val intent = Intent(this@FeedActivity, ProjectActivity::class.java)
-                                        intent.putExtra(ProjectActivity.ARG_PROJECT, project)
-                                        startActivity(intent)
-                                    } as Response.Listener<JSONObject>, { volleyError: VolleyError ->
-                                //try again?
-                            } as Response.ErrorListener)
-                            asyncEnded()
+                            val color = when (swatchId) {
+                                R.color.blue -> ProjectColor.BLUE.rgb
+                                R.color.goldenrod -> ProjectColor.GOLDENROD.rgb
+                                R.color.green -> ProjectColor.GREEN.rgb
+                                R.color.red -> ProjectColor.RED.rgb
+                                R.color.plum -> ProjectColor.PLUM.rgb
+                                R.color.turquoise -> ProjectColor.TURQUOISE.rgb
+                                R.color.smog -> ProjectColor.SMOG.rgb
+                                R.color.orange -> ProjectColor.ORANGE.rgb
+                                R.color.yellow -> ProjectColor.YELLOW.rgb
+                                else -> {
+                                    ProjectColor.SMOG.rgb
+                                }
+                            }
+                            val project = Project(name = taskTitle.text.toString(), color = color)
+                            val request = CreateProjectRequest(project, Response.Listener { response ->
+                                projects.add(response)
+                                setupNav(projects)
+                                val intent = Intent(this@FeedActivity, ProjectActivity::class.java)
+                                intent.putExtra(ProjectActivity.ARG_PROJECT, response)
+                                startActivity(intent)
+                                asyncEnded()
+                            }, Response.ErrorListener { error ->
+                                error.printStackTrace()
+                                asyncEnded()
+                            })
+                            VolleyManager.queue?.add(request)
                         })
                 .setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, id -> })
         val alertDialog = alertDialogBuilder.create()
         alertDialog.show()
+    }
+
+    private fun setSwatch(id: Int, swatch: View) {
+        swatchId = id
+        swatchColor = resources.getColor(id)
+        swatch.setBackgroundColor(swatchColor)
     }
 
     override fun onPause() {

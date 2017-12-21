@@ -13,31 +13,47 @@
     </style>
 
     <style name="TurquoiseTheme" parent="AppTheme">
-        <item name="android:colorPrimary">@color/turquoise</item>
+        <item name="colorPrimary">@color/turquoise</item>
+        <item name="colorPrimaryDark">@color/dark_turquoise</item>
     </style>
 
     <style name="RedTheme" parent="AppTheme">
-        <item name="android:colorPrimary">@color/red</item>
+        <item name="colorPrimary">@color/red</item>
+        <item name="colorPrimaryDark">@color/dark_red</item>
     </style>
 
     <style name="GoldenrodTheme" parent="AppTheme">
-        <item name="android:colorPrimary">@color/goldenrod</item>
+        <item name="colorPrimary">@color/goldenrod</item>
+        <item name="colorPrimaryDark">@color/dark_goldenrod</item>
     </style>
 
     <style name="YellowTheme" parent="AppTheme">
-        <item name="android:colorPrimary">@color/yellow</item>
+        <item name="colorPrimary">@color/yellow</item>
+        <item name="colorPrimaryDark">@color/dark_yellow</item>
     </style>
 
     <style name="BlueTheme" parent="AppTheme">
-        <item name="android:colorPrimary">@color/blue</item>
+        <item name="colorPrimary">@color/blue</item>
+        <item name="colorPrimaryDark">@color/dark_blue</item>
     </style>
 
     <style name="PlumTheme" parent="AppTheme">
-        <item name="android:colorPrimary">@color/plum</item>
+        <item name="colorPrimary">@color/plum</item>
+        <item name="colorPrimaryDark">@color/dark_plum</item>
     </style>
 
     <style name="OrangeTheme" parent="AppTheme">
-        <item name="android:colorPrimary">@color/orange</item>
+        <item name="colorPrimary">@color/orange</item>
+        <item name="colorPrimaryDark">@color/dark_orange</item>
     </style>
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
 </resources>

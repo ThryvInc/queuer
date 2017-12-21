@@ -32,16 +32,16 @@ class ProjectItemFactory(context: Context, intent: Intent) : RemoteViewsService.
     }
 
     override fun getViewAt(position: Int): RemoteViews {
-        val item = RemoteViews(context!!.packageName, R.layout.list_widget_item)
+        val item = RemoteViews(context.packageName, R.layout.list_widget_item)
 
-        item.setTextViewText(R.id.list_widget_item, projects!![position].name + ": "
-                + projects[position].firstTaskText)
+//        item.setTextViewText(R.id.list_widget_item, projects!![position].name + ": "
+//                + projects[position].firstTaskText)
 
         val i = Intent()
         val bundle = Bundle()
 
-        bundle.putString(ListWidgetProvider.PROJECT_TASK, projects[position].name + ": "
-                + projects[position].firstTaskText)
+//        bundle.putString(ListWidgetProvider.PROJECT_TASK, projects[position].name + ": "
+//                + projects[position].firstTaskText)
         i.putExtras(bundle)
         item.setOnClickFillInIntent(R.id.list_widget_item, i)
 

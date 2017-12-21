@@ -5,6 +5,7 @@
     <string name="action_add_task">Add Task</string>
     <string name="edit_task">Edit Task</string>
     <string name="action_add_project">Add Project</string>
+    <string name="action_view_projects">Projects</string>
     <string name="action_logout">Logout</string>
     <string name="action_edit_project">Edit Project</string>
     <string name="action_hide_project">Hide/Unhide Project</string>
@@ -14,12 +15,8 @@
     <string name="remember_me">Remember me</string>
     <string name="create_account">Create Account</string>
     <string name="login">Login</string>
-
-    <!-- EnhancedListView -->
-    <string name="undo">Undo</string>
-    <string name="undo_all">Undo All</string>
-    <string name="item_deleted">Item deleted</string>
-    <string name="n_items_deleted">%1$s items deleted</string>
+    <string name="days">Days</string>
+    <string name="projects">Projects</string>
 
     <!-- EnhancedListView -->
     <string name="drawer_open">Open Drawer</string>
