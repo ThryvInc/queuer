@@ -36,6 +36,13 @@
             android:name="com.rndapp.task_feed.activities.ProjectActivity"
             android:label="@string/app_name" >
         </activity>
+        <activity android:name=".activities.SprintsActivity" />
+        <activity
+            android:theme="@style/AppTheme.NoActionBar"
+            android:name=".activities.SprintActivity" />
+        <activity android:name=".activities.ChooserActivity" />
+        <activity android:name=".activities.DayActivity" />
+
         <receiver android:icon="@drawable/cw"
                   android:label="@string/app_name"
                   android:name=".broadcast_receivers.ListWidgetProvider">
