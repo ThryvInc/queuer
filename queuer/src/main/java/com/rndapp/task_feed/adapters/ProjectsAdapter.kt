@@ -1,8 +1,5 @@
 package com.rndapp.task_feed.adapters
 
-import android.graphics.Color
-import android.util.Log
-import com.rndapp.task_feed.R
 import com.rndapp.task_feed.interfaces.RearrangementListener
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
 import com.rndapp.task_feed.listeners.OnSimpleItemClickedListener
@@ -28,25 +25,11 @@ class ProjectsAdapter(var projects: ArrayList<Project>, private val listener: On
     override fun onBindViewHolder(holder: SimpleViewHolder, position: Int) {
         val project = projects[position]
         val text = project.name
-        val color = when (project.color) {
-            ProjectColor.BLUE.rgb -> R.color.blue
-            ProjectColor.GOLDENROD.rgb -> R.color.goldenrod
-            ProjectColor.GREEN.rgb -> R.color.green
-            ProjectColor.RED.rgb -> R.color.red
-            ProjectColor.PLUM.rgb -> R.color.plum
-            ProjectColor.TURQUOISE.rgb -> R.color.turquoise
-            ProjectColor.SMOG.rgb -> {
-                R.color.smog
-            }
-            ProjectColor.ORANGE.rgb -> {
-                R.color.orange
-            }
-            ProjectColor.YELLOW.rgb -> R.color.yellow
-            else -> {
-                R.color.smog
-            }
-        }
+        val color = ProjectColor.idFromProjectColor(project.color)
         holder.setText(text, position)
+        if (project.remainingPoints != null) {
+            holder.setRightText(project.remainingPoints.toString())
+        }
 
         holder.itemView.setBackgroundColor(holder.itemView.context.resources.getColor(color))
     }

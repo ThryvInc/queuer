@@ -24,7 +24,6 @@ class Task : Serializable {
     @SerializedName("finished")
     var isFinished = false
     var points = 1
-    var order: Int = 0
     var created_at: Date? = null
     var updated_at: Date? = null
 

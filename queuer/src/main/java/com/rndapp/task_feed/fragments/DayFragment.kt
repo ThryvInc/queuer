@@ -1,6 +1,8 @@
 package com.rndapp.task_feed.fragments
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -11,14 +13,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.android.volley.Response
+import com.android.volley.VolleyError
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.activities.ChooserActivity
 import com.rndapp.task_feed.activities.SprintActivity
 import com.rndapp.task_feed.adapters.DayTaskAdapter
-import com.rndapp.task_feed.api.CreateDayTaskRequest
-import com.rndapp.task_feed.api.DayRequest
-import com.rndapp.task_feed.api.FinishTaskRequest
-import com.rndapp.task_feed.api.VolleyManager
+import com.rndapp.task_feed.api.*
 import com.rndapp.task_feed.listeners.OnDayTaskClickedListener
 import com.rndapp.task_feed.models.*
 
@@ -66,8 +66,8 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
         val TASK_REQUEST = 20
     }
 
-    override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        val rootView = inflater!!.inflate(R.layout.fragment_day, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        val rootView = inflater.inflate(R.layout.fragment_day, container, false)
 
         val manager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         recyclerView = rootView?.findViewById<RecyclerView>(R.id.rv_tasks)
@@ -77,7 +77,7 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
         val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
 
-        val extras = activity.intent?.extras
+        val extras = activity?.intent?.extras
         if (extras != null) {
             val dayExtra = extras.getSerializable(DAY_KEY)
             if (dayExtra != null && dayExtra is Day) {
@@ -95,9 +95,12 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
             chooseProject()
         })
 
-        refresh()
-
         return rootView
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refresh()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -150,6 +153,29 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
     }
 
     override fun onDayTaskClicked(dayTask: DayTask) {
+        val alertDialogBuilder = AlertDialog.Builder(context)
+        alertDialogBuilder.setTitle("Task")
+                .setMessage("What would you like to do?")
+                .setCancelable(true)
+                .setPositiveButton("Delete", { dialogInterface, i ->
+                    val sprint = sprint
+                    val day = day
+                    if (sprint != null && day != null) {
+                        val request = DeleteDayTaskRequest(sprint.id, day.id, dayTask.id, object: Response.Listener<DayTask?> {
+                            override fun onResponse(response: DayTask?) {
+                                refresh()
+                            }
+                        }, object: Response.ErrorListener {
+                            override fun onErrorResponse(error: VolleyError?) {
+                                error?.printStackTrace()
+                                refresh()
+                            }
+                        })
+                        VolleyManager.queue?.add(request)
+                    }
+                })
+                .setNegativeButton("Cancel", { dialog, id -> })
 
+        alertDialogBuilder.show()
     }
 }

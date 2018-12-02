@@ -10,8 +10,8 @@ class EditTaskRequest: AuthedJsonObjectRequest {
 
     constructor(task: Task, listener: Response.Listener<Task>,
                 errorListener: Response.ErrorListener):
-            super(Method.PUT, QueuerServerConfiguration.BASE_URL + "projects/" + task.project_id + "/tasks",
-                    JSONObject("{\"task\":${Gson().toJson(task)}}"),
+            super(Method.PUT, QueuerServerConfiguration.BASE_URL + "projects/" + task.project_id + "/tasks/" + task.id,
+                    JSONObject("{\"task\":{\"points\":${task.points},\"name\":\"${task.name}\"}}"),
                     Response.Listener<JSONObject> { response ->
                         GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                         val serverTask= Gson().fromJson<Task>(response.toString(), Task::class.java)

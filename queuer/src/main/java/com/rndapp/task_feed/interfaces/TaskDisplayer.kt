@@ -11,7 +11,7 @@ import com.rndapp.task_feed.models.Task
  * Time: 3:29 PM
  */
 interface TaskDisplayer {
-    fun getContext(): Context
+    fun getContext(): Context?
     fun setupForAsync()
     fun taskUpdated(task: Task)
     fun taskCreated(task: Task)

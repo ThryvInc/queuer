@@ -3,6 +3,7 @@ package com.rndapp.task_feed.adapters
 import com.rndapp.task_feed.interfaces.RearrangementListener
 import com.rndapp.task_feed.listeners.OnDayTaskClickedListener
 import com.rndapp.task_feed.models.DayTask
+import com.rndapp.task_feed.models.ProjectColor
 import com.rndapp.task_feed.views.SimpleViewHolder
 
 class DayTaskAdapter(var dayTasks: ArrayList<DayTask>, val listener: OnDayTaskClickedListener):
@@ -12,11 +13,13 @@ class DayTaskAdapter(var dayTasks: ArrayList<DayTask>, val listener: OnDayTaskCl
     var filteredDayTasks: List<DayTask> = ArrayList()
         get() = dayTasks.filter { !((it.task?.isFinished ?: true) && !shouldDisplayFinishedTasks) }
 
-    override fun onBindViewHolder(holder: SimpleViewHolder?, position: Int) {
+    override fun onBindViewHolder(holder: SimpleViewHolder, position: Int) {
         val dayTask = filteredDayTasks[position]
-        holder?.setText(dayTask.task?.name, position)
+        holder.setText(dayTask.task?.name, position)
+        holder.setRightText(dayTask.task?.points.toString())
         if (dayTask.task?.project?.color != null) {
-            holder?.itemView?.setBackgroundColor(dayTask.task.project?.color!!)
+            val color = ProjectColor.idFromProjectColor(dayTask.task.project!!.color)
+            holder.itemView.setBackgroundColor(holder.itemView.context.resources.getColor(color))
         }
     }
 

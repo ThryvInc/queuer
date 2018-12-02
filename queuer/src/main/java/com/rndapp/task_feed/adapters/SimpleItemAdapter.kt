@@ -13,8 +13,8 @@ import com.rndapp.task_feed.views.SimpleViewHolder
 abstract class SimpleItemAdapter<T>(protected var array: List<T>):
         RecyclerView.Adapter<SimpleViewHolder>(), OnSimpleItemClickedListener {
 
-    override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): SimpleViewHolder {
-        val inflater = LayoutInflater.from(parent?.context)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SimpleViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
         val view = inflater.inflate(R.layout.item, parent, false)
         return SimpleViewHolder(view, this)
     }

@@ -8,41 +8,49 @@
 
     <!-- Application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorAccent">@color/green</item>
         <item name="colorPrimary">@color/green</item>
         <item name="colorPrimaryDark">@color/darker_green</item>
     </style>
 
     <style name="TurquoiseTheme" parent="AppTheme">
+        <item name="colorAccent">@color/turquoise</item>
         <item name="colorPrimary">@color/turquoise</item>
         <item name="colorPrimaryDark">@color/dark_turquoise</item>
     </style>
 
     <style name="RedTheme" parent="AppTheme">
+        <item name="colorAccent">@color/red</item>
         <item name="colorPrimary">@color/red</item>
         <item name="colorPrimaryDark">@color/dark_red</item>
     </style>
 
     <style name="GoldenrodTheme" parent="AppTheme">
+        <item name="colorAccent">@color/goldenrod</item>
         <item name="colorPrimary">@color/goldenrod</item>
         <item name="colorPrimaryDark">@color/dark_goldenrod</item>
     </style>
 
     <style name="YellowTheme" parent="AppTheme">
+        <item name="colorAccent">@color/yellow</item>
         <item name="colorPrimary">@color/yellow</item>
         <item name="colorPrimaryDark">@color/dark_yellow</item>
     </style>
 
     <style name="BlueTheme" parent="AppTheme">
+        <item name="colorAccent">@color/blue</item>
         <item name="colorPrimary">@color/blue</item>
         <item name="colorPrimaryDark">@color/dark_blue</item>
     </style>
 
     <style name="PlumTheme" parent="AppTheme">
+        <item name="colorAccent">@color/plum</item>
         <item name="colorPrimary">@color/plum</item>
         <item name="colorPrimaryDark">@color/dark_plum</item>
     </style>
 
     <style name="OrangeTheme" parent="AppTheme">
+        <item name="colorAccent">@color/orange</item>
         <item name="colorPrimary">@color/orange</item>
         <item name="colorPrimaryDark">@color/dark_orange</item>
     </style>

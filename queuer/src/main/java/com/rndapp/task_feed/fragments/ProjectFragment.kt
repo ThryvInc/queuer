@@ -18,6 +18,7 @@ import com.rndapp.task_feed.api.*
 import com.rndapp.task_feed.interfaces.TaskDisplayer
 import com.rndapp.task_feed.listeners.OnTaskClickedListener
 import com.rndapp.task_feed.models.Project
+import com.rndapp.task_feed.models.ProjectColor
 import com.rndapp.task_feed.models.Task
 
 class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
@@ -54,6 +55,11 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         }
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         val rootView = inflater.inflate(R.layout.fragment_project, container, false)
@@ -65,9 +71,16 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
 
-        refresh()
+        rootView.findViewById<View>(R.id.fab).setOnClickListener(android.view.View.OnClickListener {
+            createNewTask()
+        })
 
         return rootView
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refresh()
     }
 
     fun refresh() {
@@ -89,15 +102,9 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.title == getString(R.string.action_add_task)) {
-            //new task
-            createNewTask()
-        } else if (item.itemId == R.id.action_edit_project) {
-            //edit project
-            editProject()
-        } else if (item.itemId == R.id.action_delete_project) {
-            //edit project
-            deleteProject()
+        when {
+            item.itemId == R.id.action_edit_project -> editProject()
+            item.itemId == R.id.action_delete_project -> deleteProject()
         }
         return true
     }
@@ -107,9 +114,12 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         // set title
         alertDialogBuilder.setTitle("New Task")
 
-        val layout = activity.layoutInflater.inflate(R.layout.new_task, null)
+        val layout = activity?.layoutInflater?.inflate(R.layout.new_task, null)
+
+        if (layout == null) return
 
         val taskTitle = layout.findViewById<EditText>(R.id.task)
+        val taskPos = layout.findViewById<EditText>(R.id.position)
 
         // set dialog message
         alertDialogBuilder
@@ -123,6 +133,7 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                             val task = Task()
                             task.name = taskTitle.text.toString()
                             task.project_id = project!!.id
+                            task.points = Integer.valueOf(taskPos.text.toString())
 
                             val request = CreateTaskRequest(task, Response.Listener { response ->
                                 taskCreated(response)
@@ -141,14 +152,15 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         // set title
         alertDialogBuilder.setTitle(getString(R.string.edit_task))
 
-        val layout = activity.layoutInflater.inflate(R.layout.new_task, null)
+        val layout = activity?.layoutInflater?.inflate(R.layout.new_task, null)
+        if (layout == null) return
 
         val taskTitle = layout.findViewById<EditText>(R.id.task)
         val taskPos = layout.findViewById<EditText>(R.id.position)
 
         //populate text fields
         taskTitle.setText(task.name)
-        taskPos.setText(task.order.toString())
+        taskPos.setText(task.points.toString())
 
         // set dialog message
         alertDialogBuilder
@@ -159,13 +171,16 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                         DialogInterface.OnClickListener { dialog, id ->
                             setupForAsync()
                             task.name = taskTitle.text.toString()
+                            task.points = Integer.valueOf(taskPos.text.toString())
                             val request = EditTaskRequest(task, Response.Listener
                             { task1 ->
                                 taskUpdated(task1)
                             },
                                     Response.ErrorListener { error ->
                                         error.printStackTrace()
+                                        asyncEnded()
                                     })
+                            VolleyManager.queue?.add(request)
                         })
                 .setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, id -> })
         val alertDialog = alertDialogBuilder.create()
@@ -173,12 +188,14 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
     }
 
     internal var swatchColor: Int = 0
+    internal var swatchId: Int = R.color.goldenrod
     private fun editProject() {
         val alertDialogBuilder = AlertDialog.Builder(context)
         // set title
         alertDialogBuilder.setTitle(getString(R.string.action_edit_project))
 
-        val layout = activity.layoutInflater.inflate(R.layout.new_project, null)
+        val layout = activity?.layoutInflater?.inflate(R.layout.new_project, null)
+        if (layout == null) return
 
         val projectTitle = layout.findViewById<EditText>(R.id.projectName)
         projectTitle.setText(project!!.name)
@@ -195,34 +212,13 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
 
         val listener = View.OnClickListener { v ->
             when (v.id) {
-                R.id.btn_blue -> {
-                    swatchColor = resources.getColor(R.color.blue)
-                    swatch.setBackgroundColor(resources.getColor(R.color.blue))
-                }
-                R.id.btn_green -> {
-                    swatchColor = resources.getColor(R.color.green)
-                    swatch.setBackgroundColor(resources.getColor(R.color.green))
-                }
-                R.id.btn_orange -> {
-                    swatchColor = resources.getColor(R.color.orange)
-                    swatch.setBackgroundColor(resources.getColor(R.color.orange))
-                }
-                R.id.btn_plum -> {
-                    swatchColor = resources.getColor(R.color.plum)
-                    swatch.setBackgroundColor(resources.getColor(R.color.plum))
-                }
-                R.id.btn_red -> {
-                    swatchColor = resources.getColor(R.color.red)
-                    swatch.setBackgroundColor(resources.getColor(R.color.red))
-                }
-                R.id.btn_yellow -> {
-                    swatchColor = resources.getColor(R.color.yellow)
-                    swatch.setBackgroundColor(resources.getColor(R.color.yellow))
-                }
-                R.id.btn_turquoise -> {
-                    swatchColor = resources.getColor(R.color.turquoise)
-                    swatch.setBackgroundColor(resources.getColor(R.color.turquoise))
-                }
+                R.id.btn_blue -> setSwatch(R.color.blue, swatch)
+                R.id.btn_green -> setSwatch(R.color.green, swatch)
+                R.id.btn_orange -> setSwatch(R.color.orange, swatch)
+                R.id.btn_plum -> setSwatch(R.color.plum, swatch)
+                R.id.btn_red -> setSwatch(R.color.red, swatch)
+                R.id.btn_yellow -> setSwatch(R.color.yellow, swatch)
+                R.id.btn_turquoise -> setSwatch(R.color.turquoise, swatch)
             }
         }
 
@@ -244,8 +240,9 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                 .setPositiveButton("Ok",
                         DialogInterface.OnClickListener { dialog, id ->
                             setupForAsync()
+                            val color = ProjectColor.projectColorFromId(swatchId)
                             project!!.name = projectTitle.text.toString()
-                            project!!.color = swatchColor
+                            project!!.color = color.rgb
                             val request = EditProjectRequest(project!!,
                                     Response.Listener { project ->
                                         asyncEnded()
@@ -253,12 +250,19 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                                     { volleyError: VolleyError ->
                                         volleyError.printStackTrace()
                                         asyncEnded()
+                                        refresh()
                                     } as Response.ErrorListener)
                             VolleyManager.queue?.add(request)
                         })
                 .setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, id -> })
         val alertDialog = alertDialogBuilder.create()
         alertDialog.show()
+    }
+
+    private fun setSwatch(id: Int, swatch: View) {
+        swatchId = id
+        swatchColor = resources.getColor(id)
+        swatch.setBackgroundColor(swatchColor)
     }
 
     private fun deleteProject() {

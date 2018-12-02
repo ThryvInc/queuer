@@ -64,14 +64,14 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
         remember!!.isChecked = saveCreds
 
-        findViewById(R.id.login_button).setOnClickListener(this)
-        findViewById(R.id.create_account_button).setOnClickListener(this)
+        findViewById<View>(R.id.login_button).setOnClickListener(this)
+        findViewById<View>(R.id.create_account_button).setOnClickListener(this)
     }
 
     override fun onClick(view: View) {
         when (view.id) {
             R.id.login_button -> if (userField!!.text.toString() != "" && passField!!.text.toString() != "") {
-                findViewById(R.id.progress_bar).visibility = View.VISIBLE
+                findViewById<View>(R.id.progress_bar).visibility = View.VISIBLE
                 val signInModel = SignInModel()
                 signInModel.username = userField!!.text.toString()
                 signInModel.password = passField!!.text.toString()
@@ -84,7 +84,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                             }
                         }, Response.ErrorListener { volleyError ->
                     runOnUiThread {
-                        findViewById(R.id.progress_bar).visibility = View.GONE
+                        findViewById<View>(R.id.progress_bar).visibility = View.GONE
                         (findViewById(R.id.update) as TextView).text = volleyError.localizedMessage
                     }
                 })
@@ -127,7 +127,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
     fun handleLogin(jsob: JSONObject) {
         runOnUiThread {
-            findViewById(R.id.progress_bar).visibility = View.GONE
+            findViewById<View>(R.id.progress_bar).visibility = View.GONE
             //go to the next activity
             if (!errored && user != null) {
                 this@LoginActivity

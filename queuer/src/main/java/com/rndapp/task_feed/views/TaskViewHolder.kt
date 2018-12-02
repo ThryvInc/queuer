@@ -14,10 +14,13 @@ import com.rndapp.task_feed.models.Task
 
 class TaskViewHolder(itemView: View, private val listener: OnTaskClickedListener) : RecyclerView.ViewHolder(itemView) {
     private val tv: TextView
+    private val rightTextView: TextView?
     private var task: Task? = null
 
     init {
         tv = itemView.findViewById<TextView>(R.id.textView) as TextView
+
+        rightTextView = itemView.findViewById<TextView>(R.id.rightTextView)
 
         itemView.setOnClickListener { this@TaskViewHolder.listener.onTaskClicked(task!!) }
     }
@@ -25,5 +28,7 @@ class TaskViewHolder(itemView: View, private val listener: OnTaskClickedListener
     fun setTask(task: Task) {
         this.task = task
         tv.text = task.name
+
+        rightTextView?.text = task.points.toString()
     }
 }

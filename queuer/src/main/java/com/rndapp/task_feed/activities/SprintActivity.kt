@@ -3,15 +3,19 @@ package com.rndapp.task_feed.activities
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentPagerAdapter
+import android.support.v4.app.FragmentStatePagerAdapter
+import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.view.View
+import android.view.ViewGroup
 import android.widget.DatePicker
 import com.android.volley.Response
 import com.rndapp.task_feed.R
@@ -22,17 +26,16 @@ import com.rndapp.task_feed.fragments.ProjectFragment
 import com.rndapp.task_feed.fragments.ProjectsFragment
 import com.rndapp.task_feed.listeners.OnDayClickedListener
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
-import com.rndapp.task_feed.models.Day
-import com.rndapp.task_feed.models.Project
-import com.rndapp.task_feed.models.Sprint
-import com.rndapp.task_feed.models.SprintProject
+import com.rndapp.task_feed.models.*
+import com.rndapp.task_feed.view_models.styleForProject
+import kotlinx.android.synthetic.main.activity_sprint.*
 import java.util.*
 
 class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClickedListener {
     var sprint: Sprint? = null
         set(value) {
             field = value
-            sprintPagerAdapter?.sprint = value
+            setupWith(value)
             supportActionBar?.title = value?.nameFromStartDate()
         }
     private var sprintPagerAdapter: SprintPagerAdapter? = null
@@ -53,7 +56,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
         val toolbar = findViewById(R.id.toolbar) as Toolbar
         setSupportActionBar(toolbar)
 
-        if (findViewById(R.id.detail_container) != null) {
+        if (findViewById<View>(R.id.detail_container) != null) {
             mTwoPane = true
         }
 
@@ -61,7 +64,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
 
         val sprintExtra = intent?.extras?.getSerializable(SPRINT_EXTRA)
         if (sprintExtra != null && sprintExtra is Sprint) {
-            setupWith(sprintExtra)
+            this.sprint = sprintExtra
         } else {
             val calendar = Calendar.getInstance()
             DatePickerDialog(this, this::sprintDateChosen, calendar.get(Calendar.YEAR),
@@ -70,9 +73,24 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        refresh()
+    }
+
     fun refresh() {
-        if (sprint != null) {
-            val request = SprintRequest(this.sprint!!, Response.Listener { sprint ->
+        if (sprint == null) {
+            val sprintExtra = intent?.extras?.getSerializable(SPRINT_EXTRA)
+            if (sprintExtra != null && sprintExtra is Sprint) {
+                sprint = sprintExtra
+                fetchSprintDetails(sprint)
+            }
+        }
+    }
+
+    fun fetchSprintDetails(sprintToFetch: Sprint?) {
+        if (sprintToFetch != null) {
+            val request = SprintRequest(sprintToFetch.id.toString(), Response.Listener { sprint ->
                 this.sprint = sprint
             }, Response.ErrorListener { error ->
                 error.printStackTrace()
@@ -82,12 +100,11 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
     }
 
     fun setupWith(sprint: Sprint?) {
-        this.sprint = sprint
-
         sprintPagerAdapter = SprintPagerAdapter(this, this, supportFragmentManager)
         sprintPagerAdapter?.sprint = sprint
 
         viewPager?.adapter = sprintPagerAdapter
+        sprintPagerAdapter?.notifyDataSetChanged()
 
         val tabs = findViewById(R.id.tabs) as TabLayout
 
@@ -157,23 +174,46 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
     inner class SprintPagerAdapter(val dayClickedListener: OnDayClickedListener,
                                    val projectClickedListener: OnProjectClickedListener,
                                    fm: FragmentManager) : FragmentPagerAdapter(fm) {
-        val dayFragment = DaysFragment.newInstance(dayClickedListener)
-        val projectFragment = ProjectsFragment.newInstance(projectClickedListener)
+        var dayFragment: DaysFragment? = null
+        var projectFragment: ProjectsFragment? = null
         var sprint: Sprint? = null
             set(value) {
                 field = value
-                projectFragment.sprint = value
-                projectFragment.refresh()
-                dayFragment.sprint = value
-                dayFragment.refresh()
+                projectFragment?.sprint = value
+                projectFragment?.refresh()
+                dayFragment?.sprint = value
+                dayFragment?.refresh()
+                notifyDataSetChanged()
             }
+
+        override fun instantiateItem(container: ViewGroup, position: Int): Any {
+            when (position) {
+                0 -> dayFragment = DaysFragment.newInstance(dayClickedListener)
+                1 -> projectFragment = ProjectsFragment.newInstance(projectClickedListener)
+            }
+            return super.instantiateItem(container, position)
+        }
 
         override fun getItem(position: Int): Fragment {
             when (position) {
-                0 -> return dayFragment
-                1 -> return projectFragment
+                0 -> {
+//                    dayFragment.sprint = sprint
+                    val frag = DaysFragment.newInstance(dayClickedListener)
+                    frag.sprint = sprint
+                    return frag
+                }
+                1 -> {
+//                    projectFragment.sprint = sprint
+                    val frag = ProjectsFragment.newInstance(projectClickedListener)
+                    frag.sprint = sprint
+                    return frag
+                }
             }
-            return dayFragment
+            return DaysFragment.newInstance(dayClickedListener)
+        }
+
+        override fun getItemId(position: Int): Long {
+            return Random().nextLong()
         }
 
         override fun getCount(): Int {

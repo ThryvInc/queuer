@@ -143,11 +143,11 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
 
 
     override fun setupForAsync() {
-        findViewById(R.id.loading_bar).visibility = View.VISIBLE
+        findViewById<View>(R.id.loading_bar).visibility = View.VISIBLE
     }
 
     override fun asyncEnded() {
-        findViewById(R.id.loading_bar).visibility = View.GONE
+        findViewById<View>(R.id.loading_bar).visibility = View.GONE
     }
 
     override fun setupNav(projectArrayList: ArrayList<Project>?) {
@@ -189,12 +189,12 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
         drawerLayout?.setDrawerListener(drawerToggle)
 
         // Set the adapter for the list view
-        drawerList?.adapter = NavAdapter(this, projects!!)
+        drawerList?.adapter = NavAdapter(this, projects)
 
         // Set the list's click listener
         drawerList?.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
             drawerList!!.setItemChecked(position, true)
-            drawerLayout!!.closeDrawer(drawerList)
+            drawerLayout!!.closeDrawer(drawerList!!)
             startProjectActivity(projects!![position])
         }
     }
@@ -250,21 +250,8 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
                 .setPositiveButton("Ok",
                         DialogInterface.OnClickListener { dialog, id ->
                             setupForAsync()
-                            val color = when (swatchId) {
-                                R.color.blue -> ProjectColor.BLUE.rgb
-                                R.color.goldenrod -> ProjectColor.GOLDENROD.rgb
-                                R.color.green -> ProjectColor.GREEN.rgb
-                                R.color.red -> ProjectColor.RED.rgb
-                                R.color.plum -> ProjectColor.PLUM.rgb
-                                R.color.turquoise -> ProjectColor.TURQUOISE.rgb
-                                R.color.smog -> ProjectColor.SMOG.rgb
-                                R.color.orange -> ProjectColor.ORANGE.rgb
-                                R.color.yellow -> ProjectColor.YELLOW.rgb
-                                else -> {
-                                    ProjectColor.SMOG.rgb
-                                }
-                            }
-                            val project = Project(name = taskTitle.text.toString(), color = color)
+                            val color = ProjectColor.projectColorFromId(swatchId)
+                            val project = Project(name = taskTitle.text.toString(), color = color.rgb)
                             val request = CreateProjectRequest(project, Response.Listener { response ->
                                 projects.add(response)
                                 setupNav(projects)

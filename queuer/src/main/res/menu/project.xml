@@ -3,12 +3,6 @@
     xmlns:queuer="http://schemas.android.com/apk/res-auto">
 
     <item
-            android:id="@+id/action_add_task"
-            android:orderInCategory="1"
-            queuer:showAsAction="always"
-            android:title="@string/action_add_task"/>
-
-    <item
             android:id="@+id/action_edit_project"
             android:orderInCategory="2"
             queuer:showAsAction="collapseActionView|withText"

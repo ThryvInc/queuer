@@ -21,6 +21,14 @@ class DayActivity: AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_day)
 
+        val extras = intent?.extras
+        if (extras != null) {
+            val dayExtra = extras.getSerializable(DAY_KEY)
+            if (dayExtra != null && dayExtra is Day) {
+                day = dayExtra
+            }
+        }
+
         supportActionBar?.title = day?.nameFromDate()
 
         if (savedInstanceState == null) {

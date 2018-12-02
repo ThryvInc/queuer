@@ -13,7 +13,7 @@ class SprintsRequest: AuthedJsonArrayRequest {
                 errorListener: Response.ErrorListener):
             super(QueuerServerConfiguration.BASE_URL + "sprints", Response.Listener { response ->
                 val listOfSprints = object : TypeToken<List<Sprint>>() {}.type
-                val serverSprints= GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create().fromJson<List<Sprint>>(response.toString(), listOfSprints)
+                val serverSprints = GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create().fromJson<List<Sprint>>(response.toString(), listOfSprints)
                 listener.onResponse(serverSprints)
             }, errorListener)
 }

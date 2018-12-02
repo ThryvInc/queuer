@@ -27,14 +27,14 @@ class CreateAccountActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_create_account)
 
-        findViewById(R.id.create_account_button).setOnClickListener(this)
+        findViewById<View>(R.id.create_account_button).setOnClickListener(this)
     }
 
     override fun onClick(view: View) {
         val userField = findViewById(R.id.username_field) as EditText
         val passField = findViewById(R.id.password_field) as EditText
         if (userField.text.toString() != "" && passField.text.toString() != "") {
-            findViewById(R.id.progress_bar).visibility = View.VISIBLE
+            findViewById<View>(R.id.progress_bar).visibility = View.VISIBLE
             SessionManager.createAccount(userField.text.toString(), passField.text.toString(),
                     object : Response.Listener<JSONObject> {
                         internal var errored: Boolean = false
@@ -65,7 +65,7 @@ class CreateAccountActivity : AppCompatActivity(), View.OnClickListener {
                             }
 
                             Handler().post {
-                                findViewById(R.id.progress_bar).visibility = View.GONE
+                                findViewById<View>(R.id.progress_bar).visibility = View.GONE
                                 //go to the next activity
                                 if (!errored && user != null) {
                                     this@CreateAccountActivity
@@ -78,7 +78,7 @@ class CreateAccountActivity : AppCompatActivity(), View.OnClickListener {
                         }
                     }, Response.ErrorListener { volleyError ->
                 Handler().post {
-                    findViewById(R.id.progress_bar).visibility = View.GONE
+                    findViewById<View>(R.id.progress_bar).visibility = View.GONE
                     (findViewById(R.id.update) as TextView).text = volleyError.localizedMessage
                 }
             })

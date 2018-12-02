@@ -12,7 +12,8 @@ import java.util.*
  * Time: 9:53 AM
 
  */
-class TaskAdapter(var tasks: ArrayList<Task>, val listener: OnTaskClickedListener): SimpleItemAdapter<Task>(tasks as List<Task>) {
+class TaskAdapter(var tasks: ArrayList<Task>, val listener: OnTaskClickedListener):
+        SimpleItemAdapter<Task>(tasks as List<Task>) {
 
     var filteredTasks: List<Task> = ArrayList()
         get() = tasks.filter { !it.isFinished }
@@ -20,6 +21,7 @@ class TaskAdapter(var tasks: ArrayList<Task>, val listener: OnTaskClickedListene
     override fun onBindViewHolder(holder: SimpleViewHolder, position: Int) {
         val task = filteredTasks[position]
         holder.setText(task.name, position)
+        holder.setRightText(task.points.toString())
     }
 
     override fun getItemCount(): Int {
@@ -27,6 +29,6 @@ class TaskAdapter(var tasks: ArrayList<Task>, val listener: OnTaskClickedListene
     }
 
     override fun onSimpleItemClicked(id: Int) {
-        listener.onTaskClicked(tasks[id])
+        listener.onTaskClicked(filteredTasks[id])
     }
 }

@@ -64,17 +64,28 @@ class ProjectsFragment: Fragment() {
             chooseProject()
         })
 
-        refresh()
-
         return rootView
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refresh()
     }
 
     fun refresh() {
         if (sprint != null) {
-            val request = SprintRequest(sprint as Sprint, Response.Listener { sprint ->
+            fetchSprintDetails(sprint)
+        }
+    }
+
+    fun fetchSprintDetails(sprintToFetch: Sprint?) {
+        if (sprintToFetch != null) {
+            val request = SprintRequest(sprintToFetch.id.toString(), Response.Listener { sprint ->
                 this@ProjectsFragment.sprint = sprint
                 this@ProjectsFragment.adapter?.notifyDataSetChanged()
-            }, Response.ErrorListener { error -> error.printStackTrace() })
+            }, Response.ErrorListener { error ->
+                error.printStackTrace()
+            })
             VolleyManager.queue?.add(request)
         }
     }
@@ -82,6 +93,6 @@ class ProjectsFragment: Fragment() {
     fun chooseProject() {
         val intent = Intent(context, ChooserActivity::class.java)
         intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.PROJECT)
-        activity.startActivityForResult(intent, SprintActivity.PROJECT_REQUEST)
+        activity?.startActivityForResult(intent, SprintActivity.PROJECT_REQUEST)
     }
 }

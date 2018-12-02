@@ -8,7 +8,8 @@ import java.util.*
 /**
  * Created by ell on 8/5/17.
  */
-data class Day(val id: Int, val date: Date?, @SerializedName("day_tasks") var dayTasks: ArrayList<DayTask>?): Serializable, Comparable<Day> {
+data class Day(val id: Int, val date: Date?, @SerializedName("day_tasks") var dayTasks: ArrayList<DayTask>?,
+               var points: Int = 0, @SerializedName("finished_points") var finishedPoints: Int = 0): Serializable, Comparable<Day> {
 
     override fun compareTo(other: Day): Int {
         return this.date?.compareTo(other.date) ?: 0

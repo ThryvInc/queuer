@@ -40,6 +40,14 @@ class SprintsActivity : AppCompatActivity(), OnSprintClickedListener {
         fab.setOnClickListener {
             newSprint()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (VolleyManager.queue == null) {
+            VolleyManager.init(this.applicationContext)
+        }
 
         refresh()
     }
@@ -57,7 +65,7 @@ class SprintsActivity : AppCompatActivity(), OnSprintClickedListener {
     private fun refresh() {
         val request = SprintsRequest(Response.Listener { serverSprints ->
             this@SprintsActivity.sprints.removeAll(this@SprintsActivity.sprints)
-            this@SprintsActivity.sprints.addAll(serverSprints.sorted())
+            this@SprintsActivity.sprints.addAll(serverSprints)
             adapter?.notifyDataSetChanged()
         }, Response.ErrorListener { error ->
             error.printStackTrace()
