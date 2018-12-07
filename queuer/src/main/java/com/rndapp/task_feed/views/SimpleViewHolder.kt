@@ -4,30 +4,37 @@ import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.widget.TextView
 import com.rndapp.task_feed.R
-import com.rndapp.task_feed.listeners.OnSimpleItemClickedListener
 
-
-class SimpleViewHolder(itemView: View, private val listener: OnSimpleItemClickedListener): RecyclerView.ViewHolder(itemView) {
-    private val tv: TextView
-    private val rightTextView: TextView?
-    private var id: Int? = -1
+open class SimpleViewHolder(itemView: View, private val listener: (RecyclerView.ViewHolder) -> Unit):
+        RecyclerView.ViewHolder(itemView) {
+    private val tv: TextView = itemView.findViewById(R.id.textView)
+    private val rightTextView: TextView? = itemView.findViewById(R.id.rightTextView)
 
     init {
-        tv = itemView.findViewById<TextView>(R.id.textView) as TextView
-
-        rightTextView = itemView.findViewById<TextView>(R.id.rightTextView)
-
-        itemView.setOnClickListener { listener.onSimpleItemClicked(id!!) }
+        itemView.setOnClickListener { listener(this) }
     }
 
-    fun setText(text: String?, id: Int) {
+    fun setText(text: String?) {
         tv.text = text
-        this.id = id
     }
 
     fun setRightText(text: String?) {
         if (text != null) {
             rightTextView?.text = text
         }
+    }
+}
+
+class HighlightableViewHolder(itemView: View, listener: (RecyclerView.ViewHolder) -> Unit): SimpleViewHolder(itemView, listener) {
+    var isHighlighted = false
+
+    fun toggleHighlight() {
+        if (isHighlighted) {
+            itemView.setBackgroundResource(R.color.transparent)
+        } else {
+            itemView.setBackgroundResource(R.color.separator_color)
+        }
+
+        isHighlighted = !isHighlighted
     }
 }

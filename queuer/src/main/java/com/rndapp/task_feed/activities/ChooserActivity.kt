@@ -6,8 +6,11 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.view.View
 import com.android.volley.Response
 import com.rndapp.task_feed.R
+import com.rndapp.task_feed.adapters.HighlightableProjectAdapter
+import com.rndapp.task_feed.adapters.HighlightableTaskAdapter
 import com.rndapp.task_feed.adapters.ProjectsAdapter
 import com.rndapp.task_feed.adapters.TaskAdapter
 import com.rndapp.task_feed.api.ProjectRequest
@@ -19,6 +22,7 @@ import com.rndapp.task_feed.models.Day
 import com.rndapp.task_feed.models.Project
 import com.rndapp.task_feed.models.Sprint
 import com.rndapp.task_feed.models.Task
+import kotlinx.android.synthetic.main.activity_chooser.*
 
 /**
  * Created by ell on 12/6/17.
@@ -27,7 +31,8 @@ class ChooserActivity: AppCompatActivity() {
     companion object {
         val SPRINT = "SPRINT"
         val PROJECT = "PROJECT"
-        val TASK = "TASK" //provide project
+        val PROJECTS = "PROJECTS"
+        val TASKS = "TASKS" //provide project
         val DAY = "DAY" // provide sprint
         val ARRAY = "ARRAY"
 
@@ -36,6 +41,9 @@ class ChooserActivity: AppCompatActivity() {
         val PROJECT_ID = "PROJECT_ID"
         val SPRINT_ID = "SPRINT_ID"
     }
+
+    var selectedProjects = ArrayList<Project>()
+    var selectedTasks = ArrayList<Task>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +66,7 @@ class ChooserActivity: AppCompatActivity() {
         } else {
             when (array.first()) {
                 is Project -> {
+                    (doneButton as View).visibility = View.GONE
                     setupAdapter(ProjectsAdapter(array as java.util.ArrayList<Project>, object: OnProjectClickedListener {
                         override fun onProjectClicked(project: Project) {
                             val intent = Intent()
@@ -84,9 +93,9 @@ class ChooserActivity: AppCompatActivity() {
         val type = extras.get(CHOOSER_TYPE)
         if (type != null) {
             when(type) {
-                PROJECT -> setupAllProjects()
+                PROJECTS -> setupAllProjects()
                 SPRINT -> setupAllSprints()
-                TASK -> setupSingleProject(extras.getInt(PROJECT_ID, 0))
+                TASKS -> setupSingleProject(extras.getInt(PROJECT_ID, 0))
                 DAY -> {
                     //TODO handle day choosing
                 }
@@ -105,14 +114,7 @@ class ChooserActivity: AppCompatActivity() {
 
     fun setupAllProjects() {
         val request = ProjectsRequest(Response.Listener { projects ->
-            setupAdapter(ProjectsAdapter(projects, object: OnProjectClickedListener {
-                override fun onProjectClicked(project: Project) {
-                    val intent = Intent()
-                    intent.putExtra(PROJECT, project)
-                    setResult(Activity.RESULT_OK, intent)
-                    finish()
-                }
-            }) as RecyclerView.Adapter<RecyclerView.ViewHolder>)
+            setupAdapter(projectAdapterWith(projects))
         }, Response.ErrorListener { error ->
             error.printStackTrace()
         })
@@ -131,14 +133,36 @@ class ChooserActivity: AppCompatActivity() {
         recyclerView.adapter = adapter
     }
 
-    fun taskAdapterWith(tasks: ArrayList<Task>): RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        return TaskAdapter(tasks, object: OnTaskClickedListener {
-            override fun onTaskClicked(task: Task) {
-                val intent = Intent()
-                intent.putExtra(TASK, task)
-                setResult(Activity.RESULT_OK, intent)
-                finish()
+    fun projectAdapterWith(projects: ArrayList<Project>): RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        doneButton.setOnClickListener {
+            val intent = Intent()
+            intent.putExtra(PROJECTS, selectedProjects)
+            setResult(Activity.RESULT_OK, intent)
+            finish()
+        }
+
+        return HighlightableProjectAdapter(projects) { project, isHighlighted ->
+            if (isHighlighted) {
+                selectedProjects.add(project)
+            } else {
+                selectedProjects.remove(project)
             }
-        }) as RecyclerView.Adapter<RecyclerView.ViewHolder>
+        }
+    }
+
+    fun taskAdapterWith(tasks: ArrayList<Task>): RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        doneButton.setOnClickListener {
+            val intent = Intent()
+            intent.putExtra(TASKS, selectedTasks)
+            setResult(Activity.RESULT_OK, intent)
+            finish()
+        }
+        return HighlightableTaskAdapter(ArrayList(tasks.filter { !it.isFinished })) { task, isHighlighted ->
+            if (isHighlighted) {
+                selectedTasks.add(task)
+            } else {
+                selectedTasks.remove(task)
+            }
+        }
     }
 }

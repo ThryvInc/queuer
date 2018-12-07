@@ -49,7 +49,7 @@ class DaysFragment: Fragment() {
             }
         }
     private var adapter: DayAdapter? = null
-    private var dayClickedListener: OnDayClickedListener? = null
+    private lateinit var dayClickedListener: OnDayClickedListener
 
     companion object {
         fun newInstance(listener: OnDayClickedListener): DaysFragment {
@@ -65,9 +65,9 @@ class DaysFragment: Fragment() {
 
         setupDaysIn(rootView)
 
-        rootView.findViewById<View>(R.id.fab).setOnClickListener(View.OnClickListener {
+        rootView.findViewById<View>(R.id.fab).setOnClickListener {
             addDay()
-        })
+        }
 
         return rootView
     }

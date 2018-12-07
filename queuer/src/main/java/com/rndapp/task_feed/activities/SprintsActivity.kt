@@ -66,6 +66,7 @@ class SprintsActivity : AppCompatActivity(), OnSprintClickedListener {
         val request = SprintsRequest(Response.Listener { serverSprints ->
             this@SprintsActivity.sprints.removeAll(this@SprintsActivity.sprints)
             this@SprintsActivity.sprints.addAll(serverSprints)
+            adapter?.updateArray(this@SprintsActivity.sprints)
             adapter?.notifyDataSetChanged()
         }, Response.ErrorListener { error ->
             error.printStackTrace()

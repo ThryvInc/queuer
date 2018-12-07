@@ -41,7 +41,7 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
             val position = viewHolder.adapterPosition
-            val task = adapter?.filteredTasks?.get(position)
+            val task = adapter?.tasks?.get(position)
             if (task != null) {
                 val request = FinishTaskRequest(task, Response.Listener {
 
@@ -51,7 +51,8 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                 VolleyManager.queue?.add(request)
             }
             task?.isFinished = true
-            adapter!!.notifyDataSetChanged()
+            adapter?.updateArray(adapter!!.tasks.filter { !it.isFinished })
+            adapter?.notifyDataSetChanged()
         }
     }
 
@@ -71,9 +72,9 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
 
-        rootView.findViewById<View>(R.id.fab).setOnClickListener(android.view.View.OnClickListener {
+        rootView.findViewById<View>(R.id.fab).setOnClickListener {
             createNewTask()
-        })
+        }
 
         return rootView
     }
@@ -93,7 +94,7 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
     }
 
     fun setupTasks() {
-        adapter = TaskAdapter(project?.tasks ?: ArrayList(), this)
+        adapter = TaskAdapter(ArrayList(project?.tasks?.filter { !it.isFinished } ?: ArrayList()), this)
         recyclerView?.adapter = adapter
     }
 

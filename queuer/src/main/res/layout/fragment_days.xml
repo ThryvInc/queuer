@@ -19,6 +19,6 @@
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
         android:layout_margin="@dimen/fab_margin"
-        app:srcCompat="@android:drawable/ic_menu_add" />
+        android:src="@drawable/baseline_add_white_36" />
 
 </RelativeLayout>

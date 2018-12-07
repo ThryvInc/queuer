@@ -116,8 +116,9 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK) {
             if (requestCode == PROJECT_REQUEST) {
-                val id = (data?.extras?.getSerializable(ChooserActivity.PROJECT) as Project?)?.id
-                if (id != null) {
+                val projects: List<Project> = data?.extras?.getSerializable(ChooserActivity.PROJECTS) as List<Project>
+                for (project in projects) {
+                    val id = project.id
                     val sp = SprintProject(id)
                     val request = CreateSprintProjectRequest(this.sprint!!.id, sp, Response.Listener { response ->
                         refresh()

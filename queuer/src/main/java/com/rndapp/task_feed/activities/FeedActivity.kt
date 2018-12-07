@@ -44,9 +44,9 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
 
         override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-            adapter?.swapElements(viewHolder.adapterPosition, target.adapterPosition)
-            adapter?.notifyItemMoved(viewHolder.adapterPosition, target.adapterPosition)
-            return true
+//            adapter?.swapElements(viewHolder.adapterPosition, target.adapterPosition)
+//            adapter?.notifyItemMoved(viewHolder.adapterPosition, target.adapterPosition)
+            return false
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {

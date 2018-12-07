@@ -1,11 +1,11 @@
 package com.rndapp.task_feed.adapters
 
-import com.rndapp.task_feed.interfaces.RearrangementListener
+import android.support.v7.widget.RecyclerView
+import com.rndapp.task_feed.adapters.items.HighlightableSimpleViewModel
+import com.rndapp.task_feed.adapters.items.SimpleViewModel
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
-import com.rndapp.task_feed.listeners.OnSimpleItemClickedListener
 import com.rndapp.task_feed.models.Project
 import com.rndapp.task_feed.models.ProjectColor
-import com.rndapp.task_feed.views.SimpleViewHolder
 import java.util.*
 
 /**
@@ -15,37 +15,35 @@ import java.util.*
  * Time: 9:53 AM
 
  */
-class ProjectsAdapter(var projects: ArrayList<Project>, private val listener: OnProjectClickedListener?):
-        SimpleItemAdapter<Project>(projects as List<Project>), RearrangementListener, OnSimpleItemClickedListener {
+class ProjectsAdapter(var projects: ArrayList<Project>, listener: OnProjectClickedListener):
+        SimpleListAdapter<Project>(projects, ::projectToSimpleViewModel, listener::onProjectClicked) { // }, RearrangementListener {
 
-    override fun getItemCount(): Int {
-        return projects.size
-    }
-
-    override fun onBindViewHolder(holder: SimpleViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        super.onBindViewHolder(holder, position)
         val project = projects[position]
-        val text = project.name
         val color = ProjectColor.idFromProjectColor(project.color)
-        holder.setText(text, position)
-        if (project.remainingPoints != null) {
-            holder.setRightText(project.remainingPoints.toString())
-        }
-
         holder.itemView.setBackgroundColor(holder.itemView.context.resources.getColor(color))
     }
 
-    override fun onSimpleItemClicked(id: Int) {
-        listener?.onProjectClicked(projects[id])
-    }
+//    override fun swapElements(indexOne: Int, indexTwo: Int) {
+//        val temp1 = projects[indexOne]
+//        val temp2 = projects[indexTwo]
+//
+//        projects.removeAt(indexOne)
+//        projects.add(indexOne, temp2)
+//
+//        projects.removeAt(indexTwo)
+//        projects.add(indexTwo, temp1)
+//    }
+}
 
-    override fun swapElements(indexOne: Int, indexTwo: Int) {
-        val temp1 = projects[indexOne]
-        val temp2 = projects[indexTwo]
+fun projectToSimpleViewModel(project: Project): SimpleViewModel {
+    return SimpleViewModel(project.name ?: "", (project.remainingPoints ?: 0).toString())
+}
 
-        projects.removeAt(indexOne)
-        projects.add(indexOne, temp2)
+class HighlightableProjectAdapter(var projects: ArrayList<Project>, listener: (Project, Boolean) -> Unit):
+        HighlightableListAdapter<Project>(projects, ::projectToHighlightableSimpleViewModel, listener)
 
-        projects.removeAt(indexTwo)
-        projects.add(indexTwo, temp1)
-    }
+fun projectToHighlightableSimpleViewModel(project: Project): HighlightableSimpleViewModel {
+    return HighlightableSimpleViewModel(project.name ?: "", (project.remainingPoints ?: 0).toString())
 }

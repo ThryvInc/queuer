@@ -38,7 +38,7 @@ class ProjectsFragment: Fragment() {
         }
     var projects: ArrayList<Project> = ArrayList()
     private var adapter: ProjectsAdapter? = null
-    private var projectClickedListener: OnProjectClickedListener? = null
+    private lateinit var projectClickedListener: OnProjectClickedListener
 
     companion object {
         private val SPRINT_ARG = "SPRINT_ARG"
@@ -60,9 +60,9 @@ class ProjectsFragment: Fragment() {
         adapter = projects.let { ProjectsAdapter(it, projectClickedListener) }
         rv.adapter = adapter
 
-        rootView.findViewById<View>(R.id.fab).setOnClickListener(View.OnClickListener {
+        rootView.findViewById<View>(R.id.fab).setOnClickListener {
             chooseProject()
-        })
+        }
 
         return rootView
     }
@@ -92,7 +92,7 @@ class ProjectsFragment: Fragment() {
 
     fun chooseProject() {
         val intent = Intent(context, ChooserActivity::class.java)
-        intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.PROJECT)
+        intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.PROJECTS)
         activity?.startActivityForResult(intent, SprintActivity.PROJECT_REQUEST)
     }
 }
