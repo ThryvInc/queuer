@@ -3,13 +3,15 @@ package com.rndapp.task_feed.fragments
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
-import android.view.*
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.rndapp.task_feed.R
@@ -20,8 +22,10 @@ import com.rndapp.task_feed.listeners.OnTaskClickedListener
 import com.rndapp.task_feed.models.Project
 import com.rndapp.task_feed.models.ProjectColor
 import com.rndapp.task_feed.models.Task
+import kotlinx.android.synthetic.main.fragment_project.*
+import kotlinx.android.synthetic.main.standard_recycler.*
 
-class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
+class ProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListener {
     var project: Project? = null
         set(value) {
             field = value
@@ -30,8 +34,6 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
             }
         }
     private var adapter: TaskAdapter? = null
-
-    private var recyclerView: RecyclerView? = null
 
     private val simpleItemTouchCallback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
@@ -56,18 +58,23 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         }
     }
 
+    init {
+        layoutId = R.layout.fragment_project
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        val rootView = inflater.inflate(R.layout.fragment_project, container, false)
+    override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(rootView, savedInstanceState)
 
-        val manager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-        recyclerView = rootView.findViewById<RecyclerView>(R.id.task_list_view)
-        recyclerView?.layoutManager = manager
+        leftPoints.visibility = View.GONE
+        rightPoints.visibility = View.GONE
+        leftPoints.findViewById<TextView>(R.id.ptTypeTextView).text = "remaining"
+
+        recyclerView?.adapter = adapter
 
         val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
@@ -75,8 +82,6 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         rootView.findViewById<View>(R.id.fab).setOnClickListener {
             createNewTask()
         }
-
-        return rootView
     }
 
     override fun onResume() {
@@ -84,18 +89,33 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
         refresh()
     }
 
-    fun refresh() {
+    override fun refresh() {
+        refreshLayout.isRefreshing = true
         val request = ProjectRequest(project?.id ?: 0, Response.Listener { project ->
             this.project = project
+            refreshLayout.isRefreshing = false
         }, Response.ErrorListener { error ->
             error.printStackTrace()
+            refreshLayout.isRefreshing = false
         })
         VolleyManager.queue?.add(request)
     }
 
     fun setupTasks() {
-        adapter = TaskAdapter(ArrayList(project?.tasks?.filter { !it.isFinished } ?: ArrayList()), this)
-        recyclerView?.adapter = adapter
+        leftPoints?.visibility = View.VISIBLE
+        leftPoints?.findViewById<TextView>(R.id.pointsTextView)?.text =
+                project?.remainingPoints.toString()
+
+        rightPoints?.visibility = View.VISIBLE
+        rightPoints?.findViewById<TextView>(R.id.pointsTextView)?.text =
+                "${(project?.points ?: 0) - (project?.remainingPoints ?: 0)}"
+
+        if (adapter != null) {
+            adapter?.updateArray(ArrayList(project?.tasks?.filter { !it.isFinished } ?: ArrayList()))
+        } else {
+            adapter = TaskAdapter(ArrayList(project?.tasks?.filter { !it.isFinished } ?: ArrayList()), this)
+            recyclerView?.adapter = adapter
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?, inflater: MenuInflater?) {
@@ -128,7 +148,7 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                 .setCancelable(true)
                 .setView(layout)
                 .setPositiveButton("Ok",
-                        DialogInterface.OnClickListener { dialog, id ->
+                        { dialog, id ->
                             setupForAsync()
 
                             val task = Task()
@@ -169,7 +189,7 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                 .setCancelable(true)
                 .setView(layout)
                 .setPositiveButton("Ok",
-                        DialogInterface.OnClickListener { dialog, id ->
+                        { dialog, id ->
                             setupForAsync()
                             task.name = taskTitle.text.toString()
                             task.points = Integer.valueOf(taskPos.text.toString())
@@ -183,7 +203,7 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
                                     })
                             VolleyManager.queue?.add(request)
                         })
-                .setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, id -> })
+                .setNegativeButton("Cancel", { dialog, id -> })
         val alertDialog = alertDialogBuilder.create()
         alertDialog.show()
     }
@@ -271,11 +291,11 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
     }
 
     override fun setupForAsync() {
-        view?.findViewById<View>(R.id.proj_loading_bar)?.visibility = View.VISIBLE
+        refreshLayout.isRefreshing = true
     }
 
     fun asyncEnded() {
-        view?.findViewById<View>(R.id.proj_loading_bar)?.visibility = View.GONE
+        refreshLayout.isRefreshing = false
     }
 
     override fun taskUpdated(task: Task) {
@@ -286,7 +306,7 @@ class ProjectFragment: Fragment(), TaskDisplayer, OnTaskClickedListener {
     override fun taskCreated(task: Task) {
         asyncEnded()
         project?.tasks?.add(0, task)
-        adapter?.notifyDataSetChanged()
+        setupTasks()
     }
 
     override fun taskChangedOrder(task: Task) {

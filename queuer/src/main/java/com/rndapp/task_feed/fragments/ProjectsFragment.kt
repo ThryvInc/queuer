@@ -4,30 +4,27 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.widget.GridLayoutManager
-import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.DatePicker
 import com.android.volley.Response
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.activities.ChooserActivity
-import com.rndapp.task_feed.activities.ProjectActivity
 import com.rndapp.task_feed.activities.SprintActivity
 import com.rndapp.task_feed.adapters.ProjectsAdapter
-import com.rndapp.task_feed.api.CreateSprintRequest
 import com.rndapp.task_feed.api.SprintRequest
 import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
 import com.rndapp.task_feed.models.Project
 import com.rndapp.task_feed.models.Sprint
+import kotlinx.android.synthetic.main.standard_recycler.*
 import java.util.*
 
 /**
  * Created by ell on 11/26/17.
  */
-class ProjectsFragment: Fragment() {
+class ProjectsFragment: RecyclerViewFragment() {
     var sprint: Sprint? = null
         set(value) {
             field = value
@@ -49,22 +46,15 @@ class ProjectsFragment: Fragment() {
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        val rootView = inflater.inflate(R.layout.fragment_projects, container, false)
-
-        val manager = GridLayoutManager(context, 2, GridLayoutManager.VERTICAL, false)//LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-        val rv = rootView.findViewById<RecyclerView>(R.id.rv_projects)
-        rv.layoutManager = manager
+    override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(rootView, savedInstanceState)
 
         adapter = projects.let { ProjectsAdapter(it, projectClickedListener) }
-        rv.adapter = adapter
+        recyclerView.adapter = adapter
 
         rootView.findViewById<View>(R.id.fab).setOnClickListener {
             chooseProject()
         }
-
-        return rootView
     }
 
     override fun onResume() {
@@ -72,7 +62,11 @@ class ProjectsFragment: Fragment() {
         refresh()
     }
 
-    fun refresh() {
+    override fun getLayoutManager(): RecyclerView.LayoutManager {
+        return GridLayoutManager(context, 2, GridLayoutManager.VERTICAL, false)
+    }
+
+    override fun refresh() {
         if (sprint != null) {
             fetchSprintDetails(sprint)
         }
@@ -80,11 +74,15 @@ class ProjectsFragment: Fragment() {
 
     fun fetchSprintDetails(sprintToFetch: Sprint?) {
         if (sprintToFetch != null) {
+            refreshLayout.isRefreshing = true
             val request = SprintRequest(sprintToFetch.id.toString(), Response.Listener { sprint ->
                 this@ProjectsFragment.sprint = sprint
-                this@ProjectsFragment.adapter?.notifyDataSetChanged()
+                this@ProjectsFragment.adapter?.projects = this@ProjectsFragment.projects
+                this@ProjectsFragment.adapter?.updateArray(this@ProjectsFragment.projects)
+                refreshLayout.isRefreshing = false
             }, Response.ErrorListener { error ->
                 error.printStackTrace()
+                refreshLayout.isRefreshing = false
             })
             VolleyManager.queue?.add(request)
         }

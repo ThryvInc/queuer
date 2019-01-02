@@ -15,6 +15,7 @@ import com.rndapp.task_feed.api.SprintsRequest
 import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.listeners.OnSprintClickedListener
 import com.rndapp.task_feed.models.Sprint
+import kotlinx.android.synthetic.main.standard_recycler.*
 
 /**
  * Created by ell on 8/5/17.
@@ -25,21 +26,22 @@ class SprintsActivity : AppCompatActivity(), OnSprintClickedListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_sprints)
+        setContentView(R.layout.standard_recycler)
 
         supportActionBar?.title = "Sprints"
 
         val manager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        val rv = findViewById(R.id.rv_sprints) as RecyclerView
-        rv.layoutManager = manager
+        recyclerView.layoutManager = manager
 
         adapter = SprintAdapter(sprints, this)
-        rv.adapter = adapter
+        recyclerView.adapter = adapter
 
         val fab = findViewById(R.id.fab) as FloatingActionButton
         fab.setOnClickListener {
             newSprint()
         }
+
+        refreshLayout.setOnRefreshListener(this::refresh)
     }
 
     override fun onResume() {
@@ -63,13 +65,16 @@ class SprintsActivity : AppCompatActivity(), OnSprintClickedListener {
     }
 
     private fun refresh() {
+        refreshLayout.isRefreshing = true
         val request = SprintsRequest(Response.Listener { serverSprints ->
             this@SprintsActivity.sprints.removeAll(this@SprintsActivity.sprints)
             this@SprintsActivity.sprints.addAll(serverSprints)
             adapter?.updateArray(this@SprintsActivity.sprints)
             adapter?.notifyDataSetChanged()
+            refreshLayout.isRefreshing = false
         }, Response.ErrorListener { error ->
             error.printStackTrace()
+            refreshLayout.isRefreshing = false
         })
         VolleyManager.queue?.add(request)
     }

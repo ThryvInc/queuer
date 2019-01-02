@@ -5,36 +5,46 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.TextView
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.activities.ChooserActivity
-import com.rndapp.task_feed.activities.SprintActivity
 import com.rndapp.task_feed.adapters.DayTaskAdapter
 import com.rndapp.task_feed.api.*
 import com.rndapp.task_feed.listeners.OnDayTaskClickedListener
 import com.rndapp.task_feed.models.*
+import kotlinx.android.synthetic.main.fragment_day.*
+import kotlinx.android.synthetic.main.standard_recycler.*
 
-class DayFragment: Fragment(), OnDayTaskClickedListener {
+class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
     var sprint: Sprint? = null
     var day: Day? = null
         set(value) {
             field = value
             if (value != null) {
-                adapter = DayTaskAdapter(ArrayList(value.dayTasks?.filter { !(it.task?.isFinished ?: true) } ?: ArrayList()), this )
-                recyclerView?.adapter = adapter
-                adapter?.notifyDataSetChanged()
+                leftPoints.visibility = View.VISIBLE
+                leftPoints.findViewById<TextView>(R.id.pointsTextView).text =
+                        "${value.points - value.finishedPoints}"
+
+                rightPoints.visibility = View.VISIBLE
+                rightPoints.findViewById<TextView>(R.id.pointsTextView).text =
+                        value.finishedPoints.toString()
+
+                if (adapter != null) {
+                    val dayTasks = ArrayList(value.dayTasks?.filter { !(it.task?.isFinished ?: true) } ?: ArrayList())
+                    adapter?.dayTasks = dayTasks
+                    adapter?.updateArray(dayTasks)
+                } else {
+                    adapter = DayTaskAdapter(ArrayList(value.dayTasks?.filter { !(it.task?.isFinished ?: true) } ?: ArrayList()), this )
+                    recyclerView?.adapter = adapter
+                }
             }
         }
-    private var recyclerView: RecyclerView? = null
     private var adapter: DayTaskAdapter? = null
     private val simpleItemTouchCallback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
@@ -61,7 +71,6 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
                 !(it.task?.isFinished ?: true)
             })
             adapter?.updateArray(adapter?.dayTasks ?: ArrayList())
-            adapter?.notifyDataSetChanged()
         }
     }
 
@@ -73,12 +82,17 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
         val TASK_REQUEST = 20
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        val rootView = inflater.inflate(R.layout.fragment_day, container, false)
+    init {
+        layoutId = R.layout.fragment_day
+    }
 
-        val manager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-        recyclerView = rootView?.findViewById<RecyclerView>(R.id.rv_tasks)
-        recyclerView?.layoutManager = manager
+    override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(rootView, savedInstanceState)
+
+        leftPoints.visibility = View.GONE
+        rightPoints.visibility = View.GONE
+        leftPoints.findViewById<TextView>(R.id.ptTypeTextView).text = "remaining"
+
         recyclerView?.adapter = adapter
 
         val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
@@ -98,11 +112,9 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
 
 //        activity.supportActionBar?.title = day?.nameFromDate()
 
-        rootView?.findViewById<View>(R.id.fab)?.setOnClickListener {
+        rootView.findViewById<View>(R.id.fab)?.setOnClickListener {
             chooseProject()
         }
-
-        return rootView
     }
 
     override fun onResume() {
@@ -141,14 +153,17 @@ class DayFragment: Fragment(), OnDayTaskClickedListener {
         }
     }
 
-    fun refresh() {
+    override fun refresh() {
         if (day != null) {
+            refreshLayout.isRefreshing = true
             val request = DayRequest(sprint?.id!!, day!!, Response.Listener { day ->
                 if (day != null) {
                     this.day = day
                 }
+                refreshLayout.isRefreshing = false
             }, Response.ErrorListener { error ->
                 error.printStackTrace()
+                refreshLayout.isRefreshing = false
             })
             VolleyManager.queue?.add(request)
         }

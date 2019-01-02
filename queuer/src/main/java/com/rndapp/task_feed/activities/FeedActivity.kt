@@ -88,6 +88,7 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
                 adapter = ProjectsAdapter(projects, this@FeedActivity)
             } else {
                 adapter?.projects = projects
+                adapter?.updateArray(projects)
                 adapter?.notifyDataSetChanged()
             }
             asyncEnded()

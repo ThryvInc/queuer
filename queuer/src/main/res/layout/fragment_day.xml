@@ -5,19 +5,33 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/rv_tasks"
+    <LinearLayout
+        android:id="@+id/filterLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="100dp"
+        android:gravity="center"
+        >
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:layout_margin="@dimen/fab_margin"
-        android:src="@drawable/baseline_add_white_36"
+        <include layout="@layout/item_points_card"
+            android:id="@+id/leftPoints"
+            android:layout_height="match_parent"
+            android:layout_width="90dp"
+            android:layout_margin="@dimen/small_margin"
+            />
+
+        <include layout="@layout/item_points_card"
+            android:id="@+id/rightPoints"
+            android:layout_height="match_parent"
+            android:layout_width="90dp"
+            android:layout_margin="@dimen/small_margin"
+            />
+
+    </LinearLayout>
+
+    <include layout="@layout/standard_recycler"
+        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_below="@+id/filterLayout"
         />
 
 </RelativeLayout>

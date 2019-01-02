@@ -12,17 +12,15 @@ import com.rndapp.task_feed.R
 import com.rndapp.task_feed.adapters.HighlightableProjectAdapter
 import com.rndapp.task_feed.adapters.HighlightableTaskAdapter
 import com.rndapp.task_feed.adapters.ProjectsAdapter
-import com.rndapp.task_feed.adapters.TaskAdapter
 import com.rndapp.task_feed.api.ProjectRequest
 import com.rndapp.task_feed.api.ProjectsRequest
 import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
-import com.rndapp.task_feed.listeners.OnTaskClickedListener
 import com.rndapp.task_feed.models.Day
 import com.rndapp.task_feed.models.Project
 import com.rndapp.task_feed.models.Sprint
 import com.rndapp.task_feed.models.Task
-import kotlinx.android.synthetic.main.activity_chooser.*
+import kotlinx.android.synthetic.main.standard_recycler.*
 
 /**
  * Created by ell on 12/6/17.
@@ -47,7 +45,9 @@ class ChooserActivity: AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_chooser)
+        setContentView(R.layout.standard_recycler)
+
+        fab.setImageResource(R.drawable.baseline_check_white_24)
 
         val extras = intent?.extras
         if (extras != null) {
@@ -66,7 +66,7 @@ class ChooserActivity: AppCompatActivity() {
         } else {
             when (array.first()) {
                 is Project -> {
-                    (doneButton as View).visibility = View.GONE
+                    (fab as View).visibility = View.GONE
                     setupAdapter(ProjectsAdapter(array as java.util.ArrayList<Project>, object: OnProjectClickedListener {
                         override fun onProjectClicked(project: Project) {
                             val intent = Intent()
@@ -90,6 +90,7 @@ class ChooserActivity: AppCompatActivity() {
     }
 
     fun setupType(extras: Bundle) {
+        refreshLayout.isRefreshing = true
         val type = extras.get(CHOOSER_TYPE)
         if (type != null) {
             when(type) {
@@ -106,8 +107,12 @@ class ChooserActivity: AppCompatActivity() {
     fun setupSingleProject(projectId: Int) {
         val request = ProjectRequest(projectId, Response.Listener { project ->
             setupAdapter(taskAdapterWith(project.tasks))
+
+            refreshLayout.isRefreshing = false
         }, Response.ErrorListener { error ->
             error.printStackTrace()
+
+            refreshLayout.isRefreshing = false
         })
         VolleyManager.queue?.add(request)
     }
@@ -115,8 +120,12 @@ class ChooserActivity: AppCompatActivity() {
     fun setupAllProjects() {
         val request = ProjectsRequest(Response.Listener { projects ->
             setupAdapter(projectAdapterWith(projects))
+
+            refreshLayout.isRefreshing = false
         }, Response.ErrorListener { error ->
             error.printStackTrace()
+
+            refreshLayout.isRefreshing = false
         })
         VolleyManager.queue?.add(request)
     }
@@ -128,13 +137,13 @@ class ChooserActivity: AppCompatActivity() {
     fun setupAdapter(adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>) {
         val manager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
 
-        val recyclerView = findViewById(R.id.recycler_view) as RecyclerView
+        val recyclerView = findViewById(R.id.recyclerView) as RecyclerView
         recyclerView.layoutManager = manager
         recyclerView.adapter = adapter
     }
 
     fun projectAdapterWith(projects: ArrayList<Project>): RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        doneButton.setOnClickListener {
+        fab.setOnClickListener {
             val intent = Intent()
             intent.putExtra(PROJECTS, selectedProjects)
             setResult(Activity.RESULT_OK, intent)
@@ -151,7 +160,7 @@ class ChooserActivity: AppCompatActivity() {
     }
 
     fun taskAdapterWith(tasks: ArrayList<Task>): RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        doneButton.setOnClickListener {
+        fab.setOnClickListener {
             val intent = Intent()
             intent.putExtra(TASKS, selectedTasks)
             setResult(Activity.RESULT_OK, intent)

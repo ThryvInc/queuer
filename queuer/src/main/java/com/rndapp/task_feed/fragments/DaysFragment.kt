@@ -21,13 +21,14 @@ import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.listeners.OnDayClickedListener
 import com.rndapp.task_feed.models.Day
 import com.rndapp.task_feed.models.Sprint
+import kotlinx.android.synthetic.main.standard_recycler.*
 import java.util.*
 import kotlin.collections.ArrayList
 
 /**
  * Created by ell on 11/26/17.
  */
-class DaysFragment: Fragment() {
+class DaysFragment: RecyclerViewFragment() {
     var sprint: Sprint? = null
         set(value) {
             field = value
@@ -59,17 +60,14 @@ class DaysFragment: Fragment() {
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        val rootView = inflater.inflate(R.layout.fragment_days, container, false)
+    override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(rootView, savedInstanceState)
 
         setupDaysIn(rootView)
 
         rootView.findViewById<View>(R.id.fab).setOnClickListener {
             addDay()
         }
-
-        return rootView
     }
 
     override fun onResume() {
@@ -79,12 +77,17 @@ class DaysFragment: Fragment() {
         setupDaysIn(view)
     }
 
-    fun refresh() {
+    override fun refresh() {
         if (sprint != null) {
+            refreshLayout.isRefreshing = true
             val request = DaysRequest(sprint!!.id, Response.Listener { days ->
                 this@DaysFragment.days = ArrayList(days.sorted())
-                this@DaysFragment.adapter?.notifyDataSetChanged()
-            }, Response.ErrorListener { error -> error.printStackTrace() })
+                this@DaysFragment.adapter?.updateArray(this@DaysFragment.days)
+                refreshLayout.isRefreshing = false
+            }, Response.ErrorListener { error ->
+                error.printStackTrace()
+                refreshLayout.isRefreshing = false
+            })
             VolleyManager.queue?.add(request)
         }
     }
@@ -93,12 +96,8 @@ class DaysFragment: Fragment() {
         if (view != null) {
             days.sorted()
 
-            val manager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-            val rv = view.findViewById<RecyclerView>(R.id.rv_days)
-            rv.layoutManager = manager
-
             adapter = days.let { DayAdapter(it, dayClickedListener) }
-            rv.adapter = adapter
+            recyclerView.adapter = adapter
         }
     }
 
@@ -115,6 +114,7 @@ class DaysFragment: Fragment() {
             refresh()
         }, Response.ErrorListener { error ->
             error.printStackTrace()
+            refresh()
         })
         VolleyManager.queue?.add(request)
     }
