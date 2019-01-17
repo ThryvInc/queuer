@@ -18,6 +18,7 @@ import android.widget.AdapterView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.rndapp.task_feed.R
@@ -98,6 +99,10 @@ class FeedActivity : AppCompatActivity(), ProjectDisplayer, OnProjectClickedList
                 asyncEnded()
             }
         })
+        request.retryPolicy = DefaultRetryPolicy(
+                10 * 1000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT)
         VolleyManager.queue?.add(request)
     }
 

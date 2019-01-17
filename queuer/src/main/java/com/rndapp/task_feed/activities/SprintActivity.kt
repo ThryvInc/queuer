@@ -3,14 +3,11 @@ package com.rndapp.task_feed.activities
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.Intent
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentPagerAdapter
-import android.support.v4.app.FragmentStatePagerAdapter
-import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
@@ -20,15 +17,10 @@ import android.widget.DatePicker
 import com.android.volley.Response
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.api.*
-import com.rndapp.task_feed.fragments.DayFragment
-import com.rndapp.task_feed.fragments.DaysFragment
-import com.rndapp.task_feed.fragments.ProjectFragment
-import com.rndapp.task_feed.fragments.ProjectsFragment
+import com.rndapp.task_feed.fragments.*
 import com.rndapp.task_feed.listeners.OnDayClickedListener
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
 import com.rndapp.task_feed.models.*
-import com.rndapp.task_feed.view_models.styleForProject
-import kotlinx.android.synthetic.main.activity_sprint.*
 import java.util.*
 
 class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClickedListener {
@@ -100,7 +92,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
     }
 
     fun setupWith(sprint: Sprint?) {
-        sprintPagerAdapter = SprintPagerAdapter(this, this, supportFragmentManager)
+        sprintPagerAdapter = SprintPagerAdapter(this, this::onSprintProjectClicked, supportFragmentManager)
         sprintPagerAdapter?.sprint = sprint
 
         viewPager?.adapter = sprintPagerAdapter
@@ -119,7 +111,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
                 val projects: List<Project> = data?.extras?.getSerializable(ChooserActivity.PROJECTS) as List<Project>
                 for (project in projects) {
                     val id = project.id
-                    val sp = SprintProject(id)
+                    val sp = SprintProject(projectId = id)
                     val request = CreateSprintProjectRequest(this.sprint!!.id, sp, Response.Listener { response ->
                         refresh()
                     }, Response.ErrorListener { error ->
@@ -172,11 +164,26 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
         }
     }
 
+    fun onSprintProjectClicked(sprintProject: SprintProject) {
+        sprintProject.sprintId = sprint?.id
+        if (mTwoPane) {
+            val fragment = SprintProjectFragment()
+            fragment.sprintProject = sprintProject
+            supportFragmentManager.beginTransaction()
+                    .replace(R.id.detail_container, fragment)
+                    .commit()
+        } else {
+            val intent = Intent(this, SprintProjectActivity::class.java)
+            intent.putExtra(SprintProjectActivity.ARG_PROJECT, sprintProject)
+            startActivity(intent)
+        }
+    }
+
     inner class SprintPagerAdapter(val dayClickedListener: OnDayClickedListener,
-                                   val projectClickedListener: OnProjectClickedListener,
+                                   val projectClickedListener: (SprintProject) -> Unit,
                                    fm: FragmentManager) : FragmentPagerAdapter(fm) {
         var dayFragment: DaysFragment? = null
-        var projectFragment: ProjectsFragment? = null
+        var projectFragment: SprintProjectsFragment? = null
         var sprint: Sprint? = null
             set(value) {
                 field = value
@@ -190,7 +197,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
             when (position) {
                 0 -> dayFragment = DaysFragment.newInstance(dayClickedListener)
-                1 -> projectFragment = ProjectsFragment.newInstance(projectClickedListener)
+                1 -> projectFragment = SprintProjectsFragment.newInstance(projectClickedListener)
             }
             return super.instantiateItem(container, position)
         }
@@ -205,7 +212,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
                 }
                 1 -> {
 //                    projectFragment.sprint = sprint
-                    val frag = ProjectsFragment.newInstance(projectClickedListener)
+                    val frag = SprintProjectsFragment.newInstance(projectClickedListener)
                     frag.sprint = sprint
                     return frag
                 }

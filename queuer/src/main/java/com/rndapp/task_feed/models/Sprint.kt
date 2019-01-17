@@ -9,7 +9,7 @@ data class Sprint(val id: Int,
                   @SerializedName("start_date") var startDate: Date?,
                   @SerializedName("end_date") var endDate: Date?,
                   var name: String?,
-                  var projects: ArrayList<Project>,
+                  @SerializedName("sprint_projects")var sprintProjects: ArrayList<SprintProject>,
                   var days: ArrayList<Day>,
                   var points: Int = 0,
                   @SerializedName("finished_points") var finishedPoints: Int = 0): Serializable, Comparable<Sprint> {

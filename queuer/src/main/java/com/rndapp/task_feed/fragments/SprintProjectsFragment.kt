@@ -2,45 +2,45 @@ package com.rndapp.task_feed.fragments
 
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import com.android.volley.Response
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.activities.ChooserActivity
 import com.rndapp.task_feed.activities.SprintActivity
 import com.rndapp.task_feed.adapters.ProjectsAdapter
+import com.rndapp.task_feed.adapters.SprintProjectsAdapter
 import com.rndapp.task_feed.api.SprintRequest
 import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
 import com.rndapp.task_feed.models.Project
 import com.rndapp.task_feed.models.Sprint
+import com.rndapp.task_feed.models.SprintProject
 import kotlinx.android.synthetic.main.standard_recycler.*
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * Created by ell on 11/26/17.
  */
-class ProjectsFragment: RecyclerViewFragment() {
+class SprintProjectsFragment: RecyclerViewFragment() {
     var sprint: Sprint? = null
         set(value) {
             field = value
             projects.removeAll(projects)
             if (value != null) {
-                projects.addAll(value.projects)
+                projects.addAll(value.sprintProjects)
             }
         }
-    var projects: ArrayList<Project> = ArrayList()
-    private var adapter: ProjectsAdapter? = null
-    private lateinit var projectClickedListener: OnProjectClickedListener
+    var projects: ArrayList<SprintProject> = ArrayList()
+    private var adapter: SprintProjectsAdapter? = null
+    private lateinit var projectClickedListener: (SprintProject) -> Unit
 
     companion object {
         private val SPRINT_ARG = "SPRINT_ARG"
-        fun newInstance(projectClickedListener: OnProjectClickedListener): ProjectsFragment {
-            val fragment = ProjectsFragment()
+        fun newInstance(projectClickedListener: (SprintProject) -> Unit): SprintProjectsFragment {
+            val fragment = SprintProjectsFragment()
             fragment.projectClickedListener = projectClickedListener
             return fragment
         }
@@ -49,7 +49,7 @@ class ProjectsFragment: RecyclerViewFragment() {
     override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
         super.onViewCreated(rootView, savedInstanceState)
 
-        adapter = projects.let { ProjectsAdapter(it, projectClickedListener) }
+        adapter = projects.let { SprintProjectsAdapter(it, projectClickedListener) }
         recyclerView.adapter = adapter
 
         rootView.findViewById<View>(R.id.fab).setOnClickListener {
@@ -76,9 +76,9 @@ class ProjectsFragment: RecyclerViewFragment() {
         if (sprintToFetch != null) {
             refreshLayout.isRefreshing = true
             val request = SprintRequest(sprintToFetch.id.toString(), Response.Listener { sprint ->
-                this@ProjectsFragment.sprint = sprint
-                this@ProjectsFragment.adapter?.projects = this@ProjectsFragment.projects
-                this@ProjectsFragment.adapter?.updateArray(this@ProjectsFragment.projects)
+                this@SprintProjectsFragment.sprint = sprint
+                this@SprintProjectsFragment.adapter?.sprintProjects = ArrayList(this@SprintProjectsFragment.projects.sortedBy { it.createdAt })
+                this@SprintProjectsFragment.adapter?.updateArray(this@SprintProjectsFragment.projects.sortedBy { it.createdAt })
                 refreshLayout.isRefreshing = false
             }, Response.ErrorListener { error ->
                 error.printStackTrace()

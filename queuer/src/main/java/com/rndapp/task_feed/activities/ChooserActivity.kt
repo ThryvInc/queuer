@@ -9,17 +9,13 @@ import android.support.v7.widget.RecyclerView
 import android.view.View
 import com.android.volley.Response
 import com.rndapp.task_feed.R
-import com.rndapp.task_feed.adapters.HighlightableProjectAdapter
-import com.rndapp.task_feed.adapters.HighlightableTaskAdapter
-import com.rndapp.task_feed.adapters.ProjectsAdapter
+import com.rndapp.task_feed.adapters.*
 import com.rndapp.task_feed.api.ProjectRequest
 import com.rndapp.task_feed.api.ProjectsRequest
+import com.rndapp.task_feed.api.SprintProjectRequest
 import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
-import com.rndapp.task_feed.models.Day
-import com.rndapp.task_feed.models.Project
-import com.rndapp.task_feed.models.Sprint
-import com.rndapp.task_feed.models.Task
+import com.rndapp.task_feed.models.*
 import kotlinx.android.synthetic.main.standard_recycler.*
 
 /**
@@ -29,6 +25,9 @@ class ChooserActivity: AppCompatActivity() {
     companion object {
         val SPRINT = "SPRINT"
         val PROJECT = "PROJECT"
+        val SPRINT_PROJECT = "SPRINT_PROJECT"
+        val SPRINT_PROJECT_ID = "SPRINT_PROJECT_ID"
+        val SPRINT_PROJECTS = "SPRINT_PROJECTS"
         val PROJECTS = "PROJECTS"
         val TASKS = "TASKS" //provide project
         val DAY = "DAY" // provide sprint
@@ -40,6 +39,7 @@ class ChooserActivity: AppCompatActivity() {
         val SPRINT_ID = "SPRINT_ID"
     }
 
+    var selectedSprintProjects = ArrayList<SprintProject>()
     var selectedProjects = ArrayList<Project>()
     var selectedTasks = ArrayList<Task>()
 
@@ -76,6 +76,15 @@ class ChooserActivity: AppCompatActivity() {
                         }
                     }) as RecyclerView.Adapter<RecyclerView.ViewHolder>)
                 }
+                is SprintProject -> {
+                    (fab as View).visibility = View.GONE
+                    setupAdapter(SprintProjectsAdapter(array as java.util.ArrayList<SprintProject>) {
+                        val intent = Intent()
+                        intent.putExtra(SPRINT_PROJECT, it)
+                        setResult(Activity.RESULT_OK, intent)
+                        finish()
+                    } as RecyclerView.Adapter<RecyclerView.ViewHolder>)
+                }
                 is Task -> {
                     setupAdapter(taskAdapterWith(array as java.util.ArrayList<Task>))
                 }
@@ -96,7 +105,15 @@ class ChooserActivity: AppCompatActivity() {
             when(type) {
                 PROJECTS -> setupAllProjects()
                 SPRINT -> setupAllSprints()
-                TASKS -> setupSingleProject(extras.getInt(PROJECT_ID, 0))
+                TASKS -> {
+                    val sprintProjectId = extras.getInt(SPRINT_PROJECT_ID, -1)
+                    val sprintId = extras.getInt(SPRINT_ID, -1)
+                    if (sprintProjectId != -1) {
+                        setupSingleSprintProject(sprintId, sprintProjectId)
+                    } else {
+                        setupSingleProject(extras.getInt(PROJECT_ID, -1))
+                    }
+                }
                 DAY -> {
                     //TODO handle day choosing
                 }
@@ -104,14 +121,32 @@ class ChooserActivity: AppCompatActivity() {
         }
     }
 
-    fun setupSingleProject(projectId: Int) {
-        val request = ProjectRequest(projectId, Response.Listener { project ->
-            setupAdapter(taskAdapterWith(project.tasks))
+    fun setupSingleSprintProject(sprintId: Int, projectId: Int) {
+        val request = SprintProjectRequest(sprintId, projectId, Response.Listener { project ->
+            val tasks = project.tasks?.filter { !it.isFinished }
+            if (tasks != null) {
+                setupAdapter(taskAdapterWith(tasks))
+            }
 
             refreshLayout.isRefreshing = false
         }, Response.ErrorListener { error ->
             error.printStackTrace()
 
+            refreshLayout.isRefreshing = false
+        })
+        VolleyManager.queue?.add(request)
+    }
+
+    fun setupSingleProject(projectId: Int) {
+        val request = ProjectRequest(projectId, Response.Listener { project ->
+            val tasks = project.tasks?.filter { !it.isFinished }
+            if (tasks != null) {
+                setupAdapter(taskAdapterWith(tasks))
+            }
+
+            refreshLayout.isRefreshing = false
+        }, Response.ErrorListener { error ->
+            error.printStackTrace()
             refreshLayout.isRefreshing = false
         })
         VolleyManager.queue?.add(request)
@@ -159,14 +194,14 @@ class ChooserActivity: AppCompatActivity() {
         }
     }
 
-    fun taskAdapterWith(tasks: ArrayList<Task>): RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    fun taskAdapterWith(tasks: List<Task>): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         fab.setOnClickListener {
             val intent = Intent()
             intent.putExtra(TASKS, selectedTasks)
             setResult(Activity.RESULT_OK, intent)
             finish()
         }
-        return HighlightableTaskAdapter(ArrayList(tasks.filter { !it.isFinished })) { task, isHighlighted ->
+        return HighlightableTaskAdapter(ArrayList(tasks)) { task, isHighlighted ->
             if (isHighlighted) {
                 selectedTasks.add(task)
             } else {

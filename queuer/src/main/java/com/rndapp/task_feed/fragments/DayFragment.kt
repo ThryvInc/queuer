@@ -9,7 +9,6 @@ import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.View
 import android.widget.EditText
-import android.widget.TextView
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.rndapp.task_feed.R
@@ -18,6 +17,8 @@ import com.rndapp.task_feed.adapters.DayTaskAdapter
 import com.rndapp.task_feed.api.*
 import com.rndapp.task_feed.listeners.OnDayTaskClickedListener
 import com.rndapp.task_feed.models.*
+import com.rndapp.task_feed.views.PointsType
+import com.rndapp.task_feed.views.PointsViewHolder
 import kotlinx.android.synthetic.main.fragment_day.*
 import kotlinx.android.synthetic.main.standard_recycler.*
 
@@ -27,22 +28,10 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
         set(value) {
             field = value
             if (value != null) {
-                leftPoints.visibility = View.VISIBLE
-                leftPoints.findViewById<TextView>(R.id.pointsTextView).text =
-                        "${value.points - value.finishedPoints}"
+                leftPointsHolder?.setupPoints(value.points - value.finishedPoints)
+                rightPointsHolder?.setupPoints(value.finishedPoints)
 
-                rightPoints.visibility = View.VISIBLE
-                rightPoints.findViewById<TextView>(R.id.pointsTextView).text =
-                        value.finishedPoints.toString()
-
-                if (adapter != null) {
-                    val dayTasks = ArrayList(value.dayTasks?.filter { !(it.task?.isFinished ?: true) } ?: ArrayList())
-                    adapter?.dayTasks = dayTasks
-                    adapter?.updateArray(dayTasks)
-                } else {
-                    adapter = DayTaskAdapter(ArrayList(value.dayTasks?.filter { !(it.task?.isFinished ?: true) } ?: ArrayList()), this )
-                    recyclerView?.adapter = adapter
-                }
+                setupTasks()
             }
         }
     private var adapter: DayTaskAdapter? = null
@@ -58,21 +47,21 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
             val position = viewHolder.adapterPosition
             val task = adapter?.dayTasks?.get(position)?.task
             if (task != null) {
-                val request = FinishTaskRequest(task, Response.Listener {
+                task.isFinished = !task.isFinished
+                val request = ToggleFinishedTaskRequest(task, Response.Listener {
                     refresh()
                 }, Response.ErrorListener { error ->
                     error.printStackTrace()
                     refresh()
                 })
                 VolleyManager.queue?.add(request)
+                setupTasks()
             }
-            task?.isFinished = true
-            adapter?.dayTasks = ArrayList(adapter!!.dayTasks.filter {
-                !(it.task?.isFinished ?: true)
-            })
-            adapter?.updateArray(adapter?.dayTasks ?: ArrayList())
         }
     }
+
+    var leftPointsHolder: PointsViewHolder? = null
+    var rightPointsHolder: PointsViewHolder? = null
 
     companion object {
         val DAY_KEY = "DAY_KEY"
@@ -89,9 +78,21 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
     override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
         super.onViewCreated(rootView, savedInstanceState)
 
+        val listener: (View) -> Unit = {
+            leftPointsHolder?.toggleIsSelected()
+            rightPointsHolder?.toggleIsSelected()
+
+            setupTasks()
+        }
+
         leftPoints.visibility = View.GONE
+        leftPointsHolder = PointsViewHolder(leftPoints, PointsType.remaining)
+        leftPointsHolder?.toggleIsSelected()
+        leftPoints.setOnClickListener(listener)
+
         rightPoints.visibility = View.GONE
-        leftPoints.findViewById<TextView>(R.id.ptTypeTextView).text = "remaining"
+        rightPointsHolder = PointsViewHolder(rightPoints, PointsType.finished)
+        rightPoints.setOnClickListener(listener)
 
         recyclerView?.adapter = adapter
 
@@ -115,6 +116,8 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
         rootView.findViewById<View>(R.id.fab)?.setOnClickListener {
             chooseProject()
         }
+
+
     }
 
     override fun onResume() {
@@ -127,11 +130,12 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
         if (resultCode == Activity.RESULT_OK) {
             when (requestCode) {
                 PROJECT_REQUEST -> {
-                    val project = data?.getSerializableExtra(ChooserActivity.PROJECT)
-                    if (project != null && project is Project) {
+                    val project = data?.getSerializableExtra(ChooserActivity.SPRINT_PROJECT)
+                    if (project != null && project is SprintProject) {
                         val intent = Intent(context, ChooserActivity::class.java)
                         intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.TASKS)
-                        intent.putExtra(ChooserActivity.PROJECT_ID, project.id)
+                        intent.putExtra(ChooserActivity.SPRINT_PROJECT_ID, project.id)
+                        intent.putExtra(ChooserActivity.SPRINT_ID, sprint?.id)
                         startActivityForResult(intent, TASK_REQUEST)
                     }
                 }
@@ -169,10 +173,21 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
         }
     }
 
+    fun setupTasks() {
+        if (adapter != null) {
+            val dayTasks = ArrayList(day?.dayTasks?.filter { leftPointsHolder?.isSelected == !(it.task?.isFinished ?: true) } ?: ArrayList())
+            adapter?.dayTasks = dayTasks
+            adapter?.updateArray(dayTasks)
+        } else {
+            adapter = DayTaskAdapter(ArrayList(day?.dayTasks?.filter { leftPointsHolder?.isSelected == !(it.task?.isFinished ?: true) } ?: ArrayList()), this )
+            recyclerView?.adapter = adapter
+        }
+    }
+
     fun chooseProject() {
         val intent = Intent(context, ChooserActivity::class.java)
         intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.ARRAY)
-        intent.putExtra(ChooserActivity.ARRAY, sprint?.projects)
+        intent.putExtra(ChooserActivity.ARRAY, sprint?.sprintProjects)
         startActivityForResult(intent, PROJECT_REQUEST)
     }
 
