@@ -154,7 +154,7 @@ class ProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListe
 
                             val task = Task()
                             task.name = taskTitle.text.toString()
-                            task.project_id = project!!.id
+                            task.projectId = project!!.id
                             task.points = Integer.valueOf(taskPos.text.toString())
 
                             val request = CreateTaskRequest(task, Response.Listener { response ->
@@ -291,6 +291,14 @@ class ProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListe
 
     }
 
+    private fun deleteTask(task: Task) {
+        val request = DeleteTaskRequest(task.projectId, task.id, Response.Listener { refresh() }, Response.ErrorListener { error ->
+            error?.printStackTrace()
+            refresh()
+        })
+        VolleyManager.queue?.add(request)
+    }
+
     override fun setupForAsync() {
         refreshLayout.isRefreshing = true
     }
@@ -323,6 +331,18 @@ class ProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListe
     }
 
     override fun onTaskClicked(task: Task) {
-        editTask(task)
+        val alertDialogBuilder = AlertDialog.Builder(context)
+        alertDialogBuilder.setTitle("Task")
+                .setMessage("What would you like to do?")
+                .setCancelable(true)
+                .setPositiveButton("Delete") { _, _ ->
+                    deleteTask(task)
+                }
+                .setNegativeButton("Edit") { _, _ ->
+                    editTask(task)
+                }
+                .setNeutralButton("Cancel") { _, _ -> }
+
+        alertDialogBuilder.show()
     }
 }

@@ -18,34 +18,38 @@ import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.activities.ChooserActivity
+import com.rndapp.task_feed.activities.ProjectActivity
 import com.rndapp.task_feed.activities.SprintProjectActivity
+import com.rndapp.task_feed.adapters.SprintProjectTaskAdapter
 import com.rndapp.task_feed.adapters.TaskAdapter
 import com.rndapp.task_feed.api.*
 import com.rndapp.task_feed.interfaces.TaskDisplayer
 import com.rndapp.task_feed.listeners.OnTaskClickedListener
-import com.rndapp.task_feed.models.Project
-import com.rndapp.task_feed.models.ProjectColor
-import com.rndapp.task_feed.models.SprintProject
-import com.rndapp.task_feed.models.Task
+import com.rndapp.task_feed.models.*
+import com.rndapp.task_feed.view_models.SprintActivityViewModel
+import com.rndapp.task_feed.views.PointsType
+import com.rndapp.task_feed.views.PointsViewHolder
 import kotlinx.android.synthetic.main.fragment_project.*
 import kotlinx.android.synthetic.main.standard_recycler.*
 
-class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListener {
+class SprintProjectFragment: RecyclerViewFragment() {
 
     companion object {
         val TASK_REQUEST = 20
     }
 
-    var sprintId: Int = 0
+    var viewModel: SprintActivityViewModel? = null
     var sprintProject: SprintProject? = null
         set(value) {
             field = value
             if (value != null) {
                 setupTasks()
             }
-            if (value?.sprintId != null) sprintId = value.sprintId!!
         }
-    private var adapter: TaskAdapter? = null
+    private var adapter: SprintProjectTaskAdapter? = null
+
+    var leftPointsHolder: PointsViewHolder? = null
+    var rightPointsHolder: PointsViewHolder? = null
 
     private val simpleItemTouchCallback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
@@ -55,7 +59,7 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
             val position = viewHolder.adapterPosition
-            val task = adapter?.tasks?.get(position)
+            val task = adapter?.sprintProjectTasks?.get(position)?.task
             if (task != null) {
                 val request = ToggleFinishedTaskRequest(task, Response.Listener {
 
@@ -65,7 +69,7 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
                 VolleyManager.queue?.add(request)
             }
             task?.isFinished = true
-            adapter?.updateArray(adapter!!.tasks.filter { !it.isFinished })
+            adapter?.updateArray(adapter!!.sprintProjectTasks.filter { it.task != null }.filter { !(it.task?.isFinished ?: true) })
             adapter?.notifyDataSetChanged()
         }
     }
@@ -82,9 +86,21 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
     override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
         super.onViewCreated(rootView, savedInstanceState)
 
+        val listener: (View) -> Unit = {
+            leftPointsHolder?.toggleIsSelected()
+            rightPointsHolder?.toggleIsSelected()
+
+            setupTasks()
+        }
+
         leftPoints.visibility = View.GONE
+        leftPointsHolder = PointsViewHolder(leftPoints, PointsType.remaining)
+        leftPointsHolder?.toggleIsSelected()
+        leftPoints.setOnClickListener(listener)
+
         rightPoints.visibility = View.GONE
-        leftPoints.findViewById<TextView>(R.id.ptTypeTextView).text = "remaining"
+        rightPointsHolder = PointsViewHolder(rightPoints, PointsType.finished)
+        rightPoints.setOnClickListener(listener)
 
         recyclerView?.adapter = adapter
 
@@ -122,8 +138,7 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
                         val tasks: List<Task> = data.getSerializableExtra(ChooserActivity.TASKS) as List<Task>
                         for (task in tasks) {
                             val taskId = task.id
-                            val request = CreateSprintProjectTaskRequest(sprintId,
-                                    sprintProject?.id ?: 0,
+                            val request = CreateSprintProjectTaskRequest(sprintProject?.id ?: 0,
                                     taskId,
                                     Response.Listener { response -> refresh() },
                                     Response.ErrorListener { error -> error.printStackTrace() }
@@ -137,9 +152,10 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
     }
 
     override fun refresh() {
+        viewModel?.refreshSprintProjects()
+
         refreshLayout.isRefreshing = true
-        val request = SprintProjectRequest(sprintId,
-                sprintProject?.id ?: 0, Response.Listener {
+        val request = SprintProjectRequest(sprintProject?.id ?: 0, Response.Listener {
             this.sprintProject = it
             refreshLayout.isRefreshing = false
         }, Response.ErrorListener { error ->
@@ -168,28 +184,37 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
         rightPoints?.findViewById<TextView>(R.id.pointsTextView)?.text =
                 "${(sprintProject?.points ?: 0) - (sprintProject?.remainingPoints ?: 0)}"
 
-        if (adapter != null) {
-
-            adapter?.updateArray(ArrayList(sprintProject?.unfinishedTasks() ?: ArrayList()))
-        } else {
-            adapter = TaskAdapter(ArrayList(sprintProject?.unfinishedTasks() ?: ArrayList()), this)
-            recyclerView?.adapter = adapter
+        val tasks = if (leftPointsHolder?.isSelected != false) sprintProject?.unfinishedSprintTasks() else sprintProject?.finishedSprintTasks()
+        if (tasks != null) {
+            if (adapter != null) {
+                adapter?.updateArray(ArrayList(tasks))
+            } else {
+                adapter = SprintProjectTaskAdapter(ArrayList(tasks), this::onSprintTaskClicked)
+                recyclerView?.adapter = adapter
+            }
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?, inflater: MenuInflater?) {
-        inflater?.inflate(R.menu.project, menu)
+        inflater?.inflate(R.menu.sprint_project, menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when {
-            item.itemId == R.id.action_delete_project -> deleteProject()
+        when (item.itemId) {
+            R.id.action_view_project -> viewProject()
+            R.id.action_delete_project -> deleteProject()
         }
         return true
     }
 
+    private fun viewProject() {
+        val intent = Intent(context, ProjectActivity::class.java)
+        intent.putExtra(ProjectActivity.ARG_PROJECT, sprintProject?.project)
+        startActivity(intent)
+    }
+
     private fun deleteProject() {
-        VolleyManager.queue?.add(DeleteSprintProjectRequest(sprintId, sprintProject?.id ?: 0,
+        VolleyManager.queue?.add(DeleteSprintProjectRequest(sprintProject?.id ?: 0,
                 Response.Listener {
                     if (activity is SprintProjectActivity) activity?.finish()
                 },
@@ -219,7 +244,7 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
 
                     val task = Task()
                     task.name = taskTitle.text.toString()
-                    task.project_id = sprintProject?.project?.id ?: 0
+                    task.projectId = sprintProject?.project?.id ?: 0
                     task.points = Integer.valueOf(taskPos.text.toString())
 
                     val request = CreateTaskRequest(task, Response.Listener { response ->
@@ -254,27 +279,34 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
                 //.setMessage(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)))
                 .setCancelable(true)
                 .setView(layout)
-                .setPositiveButton("Ok",
-                        { dialog, id ->
-                            setupForAsync()
-                            task.name = taskTitle.text.toString()
-                            task.points = Integer.valueOf(taskPos.text.toString())
-                            val request = EditTaskRequest(task, Response.Listener
-                            { task1 ->
-                                taskUpdated(task1)
-                            },
-                                    Response.ErrorListener { error ->
-                                        error.printStackTrace()
-                                        asyncEnded()
-                                    })
-                            VolleyManager.queue?.add(request)
-                        })
+                .setPositiveButton("Ok") { dialog, id ->
+                    setupForAsync()
+                    task.name = taskTitle.text.toString()
+                    task.points = Integer.valueOf(taskPos.text.toString())
+                    val request = EditTaskRequest(task, Response.Listener
+                    { task1 ->
+                        taskUpdated(task1)
+                    },
+                            Response.ErrorListener { error ->
+                                error.printStackTrace()
+                                asyncEnded()
+                            })
+                    VolleyManager.queue?.add(request)
+                }
                 .setNegativeButton("Cancel", { dialog, id -> })
         val alertDialog = alertDialogBuilder.create()
         alertDialog.show()
     }
 
-    override fun setupForAsync() {
+    fun deleteSprintProjectTask(task: SprintProjectTask) {
+        val request = DeleteSprintProjectTaskRequest(sprintProject?.id ?: 0, task.id ?: 0, Response.Listener { refresh() }, Response.ErrorListener { error ->
+            error?.printStackTrace()
+            refresh()
+        })
+        VolleyManager.queue?.add(request)
+    }
+
+    fun setupForAsync() {
         refreshLayout.isRefreshing = true
     }
 
@@ -282,15 +314,14 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
         refreshLayout.isRefreshing = false
     }
 
-    override fun taskUpdated(task: Task) {
+    fun taskUpdated(task: Task) {
         asyncEnded()
         adapter!!.notifyDataSetChanged()
     }
 
-    override fun taskCreated(task: Task) {
+    fun taskCreated(task: Task) {
         asyncEnded()
-        val request = CreateSprintProjectTaskRequest(sprintProject?.sprintId ?: 0,
-                sprintProject?.id ?: 0,
+        val request = CreateSprintProjectTaskRequest(sprintProject?.id ?: 0,
                 task.id,
                 Response.Listener {
                     sprintProject?.project?.tasks?.add(0, task)
@@ -301,7 +332,7 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
         VolleyManager.queue?.add(request)
     }
 
-    override fun taskChangedOrder(task: Task) {
+    fun taskChangedOrder(task: Task) {
         setupForAsync()
         val request = EditTaskRequest(task,
                 Response.Listener { task1 ->
@@ -313,7 +344,22 @@ class SprintProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClicke
         adapter?.notifyDataSetChanged()
     }
 
-    override fun onTaskClicked(task: Task) {
-        editTask(task)
+    fun onSprintTaskClicked(sprintTask: SprintProjectTask) {
+        val alertDialogBuilder = AlertDialog.Builder(context)
+        alertDialogBuilder.setTitle("Task")
+                .setMessage("What would you like to do?")
+                .setCancelable(true)
+                .setPositiveButton("Remove") { _, _ ->
+                    deleteSprintProjectTask(sprintTask)
+                }
+                .setNegativeButton("Edit") { _, _ ->
+                    val task = sprintTask.task
+                    if (task != null) {
+                        editTask(task)
+                    }
+                }
+                .setNeutralButton("Cancel") { _, _ -> }
+
+        alertDialogBuilder.show()
     }
 }

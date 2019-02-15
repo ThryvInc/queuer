@@ -17,13 +17,15 @@ import com.rndapp.task_feed.adapters.DayTaskAdapter
 import com.rndapp.task_feed.api.*
 import com.rndapp.task_feed.listeners.OnDayTaskClickedListener
 import com.rndapp.task_feed.models.*
+import com.rndapp.task_feed.view_models.SprintActivityViewModel
 import com.rndapp.task_feed.views.PointsType
 import com.rndapp.task_feed.views.PointsViewHolder
 import kotlinx.android.synthetic.main.fragment_day.*
 import kotlinx.android.synthetic.main.standard_recycler.*
 
 class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
-    var sprint: Sprint? = null
+    var viewModel: SprintActivityViewModel? = null
+    var sprintId: Int? = null
     var day: Day? = null
         set(value) {
             field = value
@@ -34,6 +36,8 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
                 setupTasks()
             }
         }
+    var sprintProjects: List<SprintProject>? = null
+
     private var adapter: DayTaskAdapter? = null
     private val simpleItemTouchCallback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
@@ -66,6 +70,7 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
     companion object {
         val DAY_KEY = "DAY_KEY"
         val SPRINT_KEY = "SPRINT_KEY"
+        val SPRINT_PROJECTS_KEY = "SPRINT_PROJECTS_KEY"
 
         val PROJECT_REQUEST = 10
         val TASK_REQUEST = 20
@@ -105,10 +110,20 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
             if (dayExtra != null && dayExtra is Day) {
                 day = dayExtra
             }
-            val sprintExtra = extras.getSerializable(SPRINT_KEY)
-            if (sprintExtra != null && sprintExtra is Sprint) {
-                sprint = sprintExtra
+            val sprintIdExtra = extras.getInt(SPRINT_KEY, -1)
+            if (sprintIdExtra != -1) {
+                sprintId = sprintIdExtra
+            } else {
+                sprintId = viewModel!!.sprintId
             }
+            val sprintProjectsExtra = extras.getSerializable(SPRINT_PROJECTS_KEY) as? List<SprintProject>
+            if (sprintProjectsExtra != null) {
+                sprintProjects = sprintProjectsExtra
+            }
+        }
+
+        viewModel?.sprintProjectsLiveData?.observeForever {
+            this.sprintProjects = it
         }
 
 //        activity.supportActionBar?.title = day?.nameFromDate()
@@ -135,7 +150,7 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
                         val intent = Intent(context, ChooserActivity::class.java)
                         intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.TASKS)
                         intent.putExtra(ChooserActivity.SPRINT_PROJECT_ID, project.id)
-                        intent.putExtra(ChooserActivity.SPRINT_ID, sprint?.id)
+                        intent.putExtra(ChooserActivity.SPRINT_ID, sprintId)
                         startActivityForResult(intent, TASK_REQUEST)
                     }
                 }
@@ -144,12 +159,15 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
                         val tasks: List<Task> = data.getSerializableExtra(ChooserActivity.TASKS) as List<Task>
                         for (task in tasks) {
                             val taskId = task.id
-                            val request = CreateDayTaskRequest(sprint?.id!!, day!!.id, taskId, Response.Listener { response ->
-                                refresh()
-                            }, Response.ErrorListener { error ->
-                                error.printStackTrace()
-                            })
-                            VolleyManager.queue?.add(request)
+                            val sprintId = sprintId
+                            if (sprintId != null) {
+                                val request = CreateDayTaskRequest(sprintId, day!!.id, taskId, Response.Listener { response ->
+                                    refresh()
+                                }, Response.ErrorListener { error ->
+                                    error.printStackTrace()
+                                })
+                                VolleyManager.queue?.add(request)
+                            }
                         }
                     }
                 }
@@ -159,17 +177,23 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
 
     override fun refresh() {
         if (day != null) {
-            refreshLayout.isRefreshing = true
-            val request = DayRequest(sprint?.id!!, day!!, Response.Listener { day ->
-                if (day != null) {
-                    this.day = day
-                }
-                refreshLayout.isRefreshing = false
-            }, Response.ErrorListener { error ->
-                error.printStackTrace()
-                refreshLayout.isRefreshing = false
-            })
-            VolleyManager.queue?.add(request)
+            viewModel?.refreshDays()
+            viewModel?.refreshSprintProjects()
+
+            val sprintId = sprintId
+            if (sprintId != null) {
+                refreshLayout.isRefreshing = true
+                val request = DayRequest(sprintId, day!!, Response.Listener { day ->
+                    if (day != null) {
+                        this.day = day
+                    }
+                    refreshLayout.isRefreshing = false
+                }, Response.ErrorListener { error ->
+                    error.printStackTrace()
+                    refreshLayout.isRefreshing = false
+                })
+                VolleyManager.queue?.add(request)
+            }
         }
     }
 
@@ -185,10 +209,13 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
     }
 
     fun chooseProject() {
-        val intent = Intent(context, ChooserActivity::class.java)
-        intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.ARRAY)
-        intent.putExtra(ChooserActivity.ARRAY, sprint?.sprintProjects)
-        startActivityForResult(intent, PROJECT_REQUEST)
+        val sprintProjects = sprintProjects as? ArrayList
+        if (sprintProjects != null) {
+            val intent = Intent(context, ChooserActivity::class.java)
+            intent.putExtra(ChooserActivity.CHOOSER_TYPE, ChooserActivity.ARRAY)
+            intent.putExtra(ChooserActivity.ARRAY, sprintProjects)
+            startActivityForResult(intent, PROJECT_REQUEST)
+        }
     }
 
     override fun onDayTaskClicked(dayTask: DayTask) {
@@ -196,7 +223,7 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
         alertDialogBuilder.setTitle("Task")
                 .setMessage("What would you like to do?")
                 .setCancelable(true)
-                .setPositiveButton("Delete") { _, _ ->
+                .setPositiveButton("Remove") { _, _ ->
                     deleteTask(dayTask)
                 }
                 .setNegativeButton("Edit") { _, _ ->
@@ -211,18 +238,14 @@ class DayFragment: RecyclerViewFragment(), OnDayTaskClickedListener {
     }
 
     fun deleteTask(dayTask: DayTask) {
-        val sprint = sprint
+        val sprintId = sprintId
         val day = day
-        if (sprint != null && day != null) {
-            val request = DeleteDayTaskRequest(sprint.id, day.id, dayTask.id, object: Response.Listener<DayTask?> {
-                override fun onResponse(response: DayTask?) {
-                    refresh()
-                }
-            }, object: Response.ErrorListener {
-                override fun onErrorResponse(error: VolleyError?) {
-                    error?.printStackTrace()
-                    refresh()
-                }
+        if (day != null && sprintId != null) {
+            val request = DeleteDayTaskRequest(sprintId, day.id, dayTask.id, Response.Listener {
+                refresh()
+            }, Response.ErrorListener { error ->
+                error?.printStackTrace()
+                refresh()
             })
             VolleyManager.queue?.add(request)
         }

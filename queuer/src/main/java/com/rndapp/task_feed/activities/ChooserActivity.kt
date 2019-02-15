@@ -122,8 +122,8 @@ class ChooserActivity: AppCompatActivity() {
     }
 
     fun setupSingleSprintProject(sprintId: Int, projectId: Int) {
-        val request = SprintProjectRequest(sprintId, projectId, Response.Listener { project ->
-            val tasks = project.tasks?.filter { !it.isFinished }
+        val request = SprintProjectRequest(projectId, Response.Listener { project ->
+            val tasks = project.unfinishedTasks()
             if (tasks != null) {
                 setupAdapter(taskAdapterWith(tasks))
             }

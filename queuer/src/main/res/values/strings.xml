@@ -8,6 +8,7 @@
     <string name="action_view_projects">Projects</string>
     <string name="action_logout">Logout</string>
     <string name="action_edit_project">Edit Project</string>
+    <string name="action_view_project">View Full Project</string>
     <string name="action_hide_project">Hide/Unhide Project</string>
     <string name="action_delete_project">Delete Project</string>
     <string name="username_hint">username or email</string>

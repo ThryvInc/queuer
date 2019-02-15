@@ -10,7 +10,7 @@ class EditTaskRequest: AuthedJsonObjectRequest {
 
     constructor(task: Task, listener: Response.Listener<Task>,
                 errorListener: Response.ErrorListener):
-            super(Method.PUT, QueuerServerConfiguration.BASE_URL + "projects/" + task.project_id + "/tasks/" + task.id,
+            super(Method.PUT, QueuerServerConfiguration.BASE_URL + "projects/" + task.projectId + "/tasks/" + task.id,
                     JSONObject("{\"task\":{\"points\":${task.points},\"name\":\"${task.name}\"}}"),
                     Response.Listener<JSONObject> { response ->
                         GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")

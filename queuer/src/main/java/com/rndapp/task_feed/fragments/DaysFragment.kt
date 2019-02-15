@@ -21,6 +21,7 @@ import com.rndapp.task_feed.api.VolleyManager
 import com.rndapp.task_feed.listeners.OnDayClickedListener
 import com.rndapp.task_feed.models.Day
 import com.rndapp.task_feed.models.Sprint
+import com.rndapp.task_feed.view_models.SprintActivityViewModel
 import kotlinx.android.synthetic.main.standard_recycler.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -29,39 +30,41 @@ import kotlin.collections.ArrayList
  * Created by ell on 11/26/17.
  */
 class DaysFragment: RecyclerViewFragment() {
-    var sprint: Sprint? = null
-        set(value) {
-            field = value
-            days.removeAll(days)
-            if (value != null) {
-                days.addAll(value.days.sorted())
-            }
-        }
+    var viewModel: SprintActivityViewModel? = null
     private var days: ArrayList<Day> = ArrayList()
         set(value) {
             field.removeAll(field)
             field.addAll(value)
             if (adapter == null) {
-                if (view != null) {
-                    setupDaysIn(view!!)
-                }
-            } else {
-                adapter?.notifyDataSetChanged()
+                setupDaysIn(view)
             }
         }
     private var adapter: DayAdapter? = null
     private lateinit var dayClickedListener: OnDayClickedListener
 
     companion object {
-        fun newInstance(listener: OnDayClickedListener): DaysFragment {
+        fun newInstance(listener: OnDayClickedListener, viewModel: SprintActivityViewModel): DaysFragment {
             val fragment = DaysFragment()
             fragment.dayClickedListener = listener
+            fragment.viewModel = viewModel
             return fragment
         }
     }
 
     override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
         super.onViewCreated(rootView, savedInstanceState)
+
+        viewModel?.isLoadingDaysLiveData?.observeForever {
+            if (it != null) {
+                refreshLayout?.isRefreshing = it
+            }
+        }
+        viewModel?.daysLiveData?.observeForever {
+            if (it != null){
+                days = ArrayList(it.sorted())
+                adapter?.updateArray(days)
+            }
+        }
 
         setupDaysIn(rootView)
 
@@ -78,18 +81,7 @@ class DaysFragment: RecyclerViewFragment() {
     }
 
     override fun refresh() {
-        if (sprint != null) {
-            refreshLayout.isRefreshing = true
-            val request = DaysRequest(sprint!!.id, Response.Listener { days ->
-                this@DaysFragment.days = ArrayList(days.sorted())
-                this@DaysFragment.adapter?.updateArray(this@DaysFragment.days)
-                refreshLayout.isRefreshing = false
-            }, Response.ErrorListener { error ->
-                error.printStackTrace()
-                refreshLayout.isRefreshing = false
-            })
-            VolleyManager.queue?.add(request)
-        }
+        viewModel?.refreshDays()
     }
 
     fun setupDaysIn(view: View?) {
@@ -110,12 +102,15 @@ class DaysFragment: RecyclerViewFragment() {
 
     fun dayDateChosen(datePicker: DatePicker, year: Int, month: Int, day: Int) {
         val date = GregorianCalendar(year, month, day).time
-        val request = CreateDayRequest(sprint!!.id, date, Response.Listener { day ->
-            refresh()
-        }, Response.ErrorListener { error ->
-            error.printStackTrace()
-            refresh()
-        })
-        VolleyManager.queue?.add(request)
+        val sprintId = viewModel?.sprintId
+        if (sprintId != null) {
+            val request = CreateDayRequest(sprintId, date, Response.Listener { day ->
+                refresh()
+            }, Response.ErrorListener { error ->
+                error.printStackTrace()
+                refresh()
+            })
+            VolleyManager.queue?.add(request)
+        }
     }
 }

@@ -14,9 +14,11 @@ data class SprintProject(val id: Int? = null,
                          val project: Project? = null,
                          val points: Int? = null,
                          @SerializedName("remaining_points") var remainingPoints: Int? = null,
-                         @SerializedName("sprint_project_tasks") var sprintProjectTasks: ArrayList<SprintProjectTask>? = null,
-                         var tasks: ArrayList<Task>? = null): Serializable {
-    fun unfinishedTasks() = tasks?.filter { !it.isFinished }?.sortedBy { it.created_at }
+                         @SerializedName("sprint_project_tasks") var sprintProjectTasks: ArrayList<SprintProjectTask>? = null): Serializable {
 
-    fun finishedTasks() = tasks?.filter { it.isFinished }?.sortedBy { it.created_at }
+    fun unfinishedSprintTasks() = sprintProjectTasks?.filter { !(it.task?.isFinished ?: false) }?.sortedBy { it.task?.created_at }
+    fun finishedSprintTasks() = sprintProjectTasks?.filter { it.task?.isFinished ?: true }?.sortedBy { it.task?.created_at }
+
+    fun unfinishedTasks() = unfinishedSprintTasks()?.filter { it.task != null }?.map { it.task!! }
+    fun finishedTasks() = finishedSprintTasks()?.filter { it.task != null }?.map { it.task!! }
 }

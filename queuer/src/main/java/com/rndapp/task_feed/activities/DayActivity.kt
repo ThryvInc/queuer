@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import com.rndapp.task_feed.R
 import com.rndapp.task_feed.fragments.DayFragment
+import com.rndapp.task_feed.fragments.DayFragment.Companion.DAY_KEY
 import com.rndapp.task_feed.models.Day
 
 /**
@@ -11,11 +12,6 @@ import com.rndapp.task_feed.models.Day
  */
 class DayActivity: AppCompatActivity() {
     var day: Day? = null
-
-    companion object {
-        val DAY_KEY = "DAY_KEY"
-        val SPRINT_KEY = "SPRINT_KEY"
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

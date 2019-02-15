@@ -9,7 +9,7 @@ import org.json.JSONObject
  * Created by ell on 11/26/17.
  */
 class SprintRequest: AuthedJsonObjectRequest {
-    constructor(sprintId: String, listener: Response.Listener<Sprint>,
+    constructor(sprintId: Int, listener: Response.Listener<Sprint>,
                 errorListener: Response.ErrorListener):
             super(Method.GET, QueuerServerConfiguration.BASE_URL + "sprints/${sprintId}", null, Response.Listener<JSONObject> { response ->
                 val serverSprints= GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create().fromJson<Sprint>(response.toString(), Sprint::class.java)

@@ -18,11 +18,10 @@ import java.util.*
 class Task : Serializable {
     var id: Int = 0
     var localId: Int = 0
-    var project_id: Int = 0
+    @SerializedName("project_id") var projectId: Int = 0
     var project: Project? = null
     var name: String? = null
-    @SerializedName("finished")
-    var isFinished = false
+    @SerializedName("finished") var isFinished = false
     var points = 1
     var created_at: Date? = null
     var updated_at: Date? = null
@@ -33,7 +32,7 @@ class Task : Serializable {
 
         val task = o as Task?
 
-        if (project_id != task!!.project_id) return false
+        if (projectId != task!!.projectId) return false
         if (id != task.id) return false
 
         return true

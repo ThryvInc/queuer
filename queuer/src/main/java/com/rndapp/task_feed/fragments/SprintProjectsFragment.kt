@@ -17,6 +17,7 @@ import com.rndapp.task_feed.listeners.OnProjectClickedListener
 import com.rndapp.task_feed.models.Project
 import com.rndapp.task_feed.models.Sprint
 import com.rndapp.task_feed.models.SprintProject
+import com.rndapp.task_feed.view_models.SprintActivityViewModel
 import kotlinx.android.synthetic.main.standard_recycler.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -25,23 +26,16 @@ import kotlin.collections.ArrayList
  * Created by ell on 11/26/17.
  */
 class SprintProjectsFragment: RecyclerViewFragment() {
-    var sprint: Sprint? = null
-        set(value) {
-            field = value
-            projects.removeAll(projects)
-            if (value != null) {
-                projects.addAll(value.sprintProjects)
-            }
-        }
+    var viewModel: SprintActivityViewModel? = null
     var projects: ArrayList<SprintProject> = ArrayList()
     private var adapter: SprintProjectsAdapter? = null
     private lateinit var projectClickedListener: (SprintProject) -> Unit
 
     companion object {
-        private val SPRINT_ARG = "SPRINT_ARG"
-        fun newInstance(projectClickedListener: (SprintProject) -> Unit): SprintProjectsFragment {
+        fun newInstance(projectClickedListener: (SprintProject) -> Unit, viewModel: SprintActivityViewModel): SprintProjectsFragment {
             val fragment = SprintProjectsFragment()
             fragment.projectClickedListener = projectClickedListener
+            fragment.viewModel = viewModel
             return fragment
         }
     }
@@ -51,6 +45,20 @@ class SprintProjectsFragment: RecyclerViewFragment() {
 
         adapter = projects.let { SprintProjectsAdapter(it, projectClickedListener) }
         recyclerView.adapter = adapter
+
+        viewModel?.isLoadingSprintProjectsLiveData?.observeForever {
+            if (it != null) {
+                refreshLayout?.isRefreshing = it
+            }
+        }
+        viewModel?.sprintProjectsLiveData?.observeForever {
+            projects.removeAll(projects)
+            val sprintProjects = it
+            if (sprintProjects != null) {
+                projects.addAll(sprintProjects)
+                adapter?.updateArray(projects)
+            }
+        }
 
         rootView.findViewById<View>(R.id.fab).setOnClickListener {
             chooseProject()
@@ -67,25 +75,7 @@ class SprintProjectsFragment: RecyclerViewFragment() {
     }
 
     override fun refresh() {
-        if (sprint != null) {
-            fetchSprintDetails(sprint)
-        }
-    }
-
-    fun fetchSprintDetails(sprintToFetch: Sprint?) {
-        if (sprintToFetch != null) {
-            refreshLayout.isRefreshing = true
-            val request = SprintRequest(sprintToFetch.id.toString(), Response.Listener { sprint ->
-                this@SprintProjectsFragment.sprint = sprint
-                this@SprintProjectsFragment.adapter?.sprintProjects = ArrayList(this@SprintProjectsFragment.projects.sortedBy { it.createdAt })
-                this@SprintProjectsFragment.adapter?.updateArray(this@SprintProjectsFragment.projects.sortedBy { it.createdAt })
-                refreshLayout.isRefreshing = false
-            }, Response.ErrorListener { error ->
-                error.printStackTrace()
-                refreshLayout.isRefreshing = false
-            })
-            VolleyManager.queue?.add(request)
-        }
+        viewModel?.refreshSprintProjects()
     }
 
     fun chooseProject() {

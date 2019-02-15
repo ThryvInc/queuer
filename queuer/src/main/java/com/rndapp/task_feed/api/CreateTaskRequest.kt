@@ -10,7 +10,7 @@ class CreateTaskRequest: AuthedJsonObjectRequest {
 
     constructor(task: Task, listener: Response.Listener<Task>,
                 errorListener: Response.ErrorListener):
-            super(Method.POST, QueuerServerConfiguration.BASE_URL + "projects/" + task.project_id + "/tasks",
+            super(Method.POST, QueuerServerConfiguration.BASE_URL + "projects/" + task.projectId + "/tasks",
                     JSONObject("{\"task\":${Gson().toJson(task)}}"),
                     Response.Listener<JSONObject> { response ->
                         GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")

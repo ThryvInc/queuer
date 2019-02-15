@@ -21,15 +21,13 @@ import com.rndapp.task_feed.fragments.*
 import com.rndapp.task_feed.listeners.OnDayClickedListener
 import com.rndapp.task_feed.listeners.OnProjectClickedListener
 import com.rndapp.task_feed.models.*
+import com.rndapp.task_feed.view_models.SprintActivityViewModel
+import java.io.Serializable
 import java.util.*
 
 class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClickedListener {
-    var sprint: Sprint? = null
-        set(value) {
-            field = value
-            setupWith(value)
-            supportActionBar?.title = value?.nameFromStartDate()
-        }
+    private var viewModel: SprintActivityViewModel? = null
+
     private var sprintPagerAdapter: SprintPagerAdapter? = null
     private var viewPager: ViewPager? = null
 
@@ -56,7 +54,8 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
 
         val sprintExtra = intent?.extras?.getSerializable(SPRINT_EXTRA)
         if (sprintExtra != null && sprintExtra is Sprint) {
-            this.sprint = sprintExtra
+            setupViewModel(sprintExtra.id)
+            setupWith(sprintExtra)
         } else {
             val calendar = Calendar.getInstance()
             DatePickerDialog(this, this::sprintDateChosen, calendar.get(Calendar.YEAR),
@@ -71,29 +70,19 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
     }
 
     fun refresh() {
-        if (sprint == null) {
-            val sprintExtra = intent?.extras?.getSerializable(SPRINT_EXTRA)
-            if (sprintExtra != null && sprintExtra is Sprint) {
-                sprint = sprintExtra
-                fetchSprintDetails(sprint)
-            }
-        }
+        viewModel?.refreshDays()
+        viewModel?.refreshSprintProjects()
     }
 
-    fun fetchSprintDetails(sprintToFetch: Sprint?) {
-        if (sprintToFetch != null) {
-            val request = SprintRequest(sprintToFetch.id.toString(), Response.Listener { sprint ->
-                this.sprint = sprint
-            }, Response.ErrorListener { error ->
-                error.printStackTrace()
-            })
-            VolleyManager.queue?.add(request)
-        }
+    fun setupViewModel(sprintId: Int) {
+        viewModel = SprintActivityViewModel(sprintId)
+        viewModel?.sprintLiveData?.observeForever(this::setupWith)
+        viewModel?.refreshSprint()
     }
 
     fun setupWith(sprint: Sprint?) {
+        supportActionBar?.title = sprint?.nameFromStartDate()
         sprintPagerAdapter = SprintPagerAdapter(this, this::onSprintProjectClicked, supportFragmentManager)
-        sprintPagerAdapter?.sprint = sprint
 
         viewPager?.adapter = sprintPagerAdapter
         sprintPagerAdapter?.notifyDataSetChanged()
@@ -112,7 +101,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
                 for (project in projects) {
                     val id = project.id
                     val sp = SprintProject(projectId = id)
-                    val request = CreateSprintProjectRequest(this.sprint!!.id, sp, Response.Listener { response ->
+                    val request = CreateSprintProjectRequest(this.viewModel!!.sprintId, sp, Response.Listener { response ->
                         refresh()
                     }, Response.ErrorListener { error ->
                         error.printStackTrace()
@@ -126,6 +115,7 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
     fun sprintDateChosen(datePicker: DatePicker, year: Int, month: Int, day: Int) {
         val date = GregorianCalendar(year, month, day).time
         val request = CreateSprintRequest(date, Response.Listener { sprint ->
+            setupViewModel(sprint.id)
             setupWith(sprint)
             viewPager?.setCurrentItem(1, true)
         }, Response.ErrorListener { error ->
@@ -137,15 +127,16 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
     override fun onDayClicked(day: Day) {
         if (mTwoPane) {
             val fragment = DayFragment()
-            fragment.sprint = sprint
             fragment.day = day
+            fragment.viewModel = viewModel
             supportFragmentManager.beginTransaction()
                     .replace(R.id.detail_container, fragment)
                     .commit()
         } else {
             val intent = Intent(this, DayActivity::class.java)
-            intent.putExtra(DayActivity.SPRINT_KEY, sprint)
-            intent.putExtra(DayActivity.DAY_KEY, day)
+            intent.putExtra(DayFragment.DAY_KEY, day)
+            intent.putExtra(DayFragment.SPRINT_KEY, viewModel?.sprintId)
+            intent.putExtra(DayFragment.SPRINT_PROJECTS_KEY, viewModel?.sprintProjectsLiveData?.value as Serializable)
             startActivity(intent)
         }
     }
@@ -165,10 +156,11 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
     }
 
     fun onSprintProjectClicked(sprintProject: SprintProject) {
-        sprintProject.sprintId = sprint?.id
+        sprintProject.sprintId = viewModel!!.sprintId
         if (mTwoPane) {
             val fragment = SprintProjectFragment()
             fragment.sprintProject = sprintProject
+            fragment.viewModel = viewModel
             supportFragmentManager.beginTransaction()
                     .replace(R.id.detail_container, fragment)
                     .commit()
@@ -184,20 +176,11 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
                                    fm: FragmentManager) : FragmentPagerAdapter(fm) {
         var dayFragment: DaysFragment? = null
         var projectFragment: SprintProjectsFragment? = null
-        var sprint: Sprint? = null
-            set(value) {
-                field = value
-                projectFragment?.sprint = value
-                projectFragment?.refresh()
-                dayFragment?.sprint = value
-                dayFragment?.refresh()
-                notifyDataSetChanged()
-            }
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
             when (position) {
-                0 -> dayFragment = DaysFragment.newInstance(dayClickedListener)
-                1 -> projectFragment = SprintProjectsFragment.newInstance(projectClickedListener)
+                0 -> dayFragment = DaysFragment.newInstance(dayClickedListener, viewModel!!)
+                1 -> projectFragment = SprintProjectsFragment.newInstance(projectClickedListener, viewModel!!)
             }
             return super.instantiateItem(container, position)
         }
@@ -206,18 +189,16 @@ class SprintActivity: AppCompatActivity(), OnDayClickedListener, OnProjectClicke
             when (position) {
                 0 -> {
 //                    dayFragment.sprint = sprint
-                    val frag = DaysFragment.newInstance(dayClickedListener)
-                    frag.sprint = sprint
+                    val frag = DaysFragment.newInstance(dayClickedListener, viewModel!!)
                     return frag
                 }
                 1 -> {
 //                    projectFragment.sprint = sprint
-                    val frag = SprintProjectsFragment.newInstance(projectClickedListener)
-                    frag.sprint = sprint
+                    val frag = SprintProjectsFragment.newInstance(projectClickedListener, viewModel!!)
                     return frag
                 }
             }
-            return DaysFragment.newInstance(dayClickedListener)
+            return DaysFragment.newInstance(dayClickedListener, viewModel!!)
         }
 
         override fun getItemId(position: Int): Long {
