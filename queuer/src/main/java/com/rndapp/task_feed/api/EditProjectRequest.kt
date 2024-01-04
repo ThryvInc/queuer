@@ -10,7 +10,7 @@ class EditProjectRequest: AuthedJsonObjectRequest {
 
     constructor(project: Project, listener: Response.Listener<Project>,
                 errorListener: Response.ErrorListener):
-            super(Method.PUT, QueuerServerConfiguration.BASE_URL + "projects",
+            super(Method.PUT, QueuerServerConfiguration.BASE_URL + "projects/${project.id}",
                     JSONObject("{\"project\":${Gson().toJson(Project(name = project.name, color = project.color))}}"),
                     Response.Listener<JSONObject> { response ->
                         GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")

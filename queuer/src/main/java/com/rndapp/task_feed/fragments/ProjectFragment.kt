@@ -140,8 +140,8 @@ class ProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListe
 
         if (layout == null) return
 
-        val taskTitle = layout.findViewById<EditText>(R.id.task)
-        val taskPos = layout.findViewById<EditText>(R.id.position)
+        val taskTitle = layout.findViewById<EditText>(R.id.taskNameEditText)
+        val taskPos = layout.findViewById<EditText>(R.id.pointsEditText)
 
         // set dialog message
         alertDialogBuilder
@@ -177,8 +177,8 @@ class ProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListe
         val layout = activity?.layoutInflater?.inflate(R.layout.new_task, null)
         if (layout == null) return
 
-        val taskTitle = layout.findViewById<EditText>(R.id.task)
-        val taskPos = layout.findViewById<EditText>(R.id.position)
+        val taskTitle = layout.findViewById<EditText>(R.id.taskNameEditText)
+        val taskPos = layout.findViewById<EditText>(R.id.pointsEditText)
 
         //populate text fields
         taskTitle.setText(task.name)
@@ -266,14 +266,14 @@ class ProjectFragment: RecyclerViewFragment(), TaskDisplayer, OnTaskClickedListe
                             project!!.name = projectTitle.text.toString()
                             project!!.color = color.rgb
                             val request = EditProjectRequest(project!!,
-                                    Response.Listener { project ->
+                                    Response.Listener { _ ->
                                         asyncEnded()
                                     },
-                                    { volleyError: VolleyError ->
+                                    Response.ErrorListener { volleyError: VolleyError ->
                                         volleyError.printStackTrace()
                                         asyncEnded()
                                         refresh()
-                                    } as Response.ErrorListener)
+                                    })
                             VolleyManager.queue?.add(request)
                         })
                 .setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, id -> })

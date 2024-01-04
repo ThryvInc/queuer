@@ -1,6 +1,7 @@
 package com.rndapp.task_feed.views
 
 import android.support.v7.widget.CardView
+import android.util.TypedValue
 import android.view.View
 import android.widget.TextView
 import com.rndapp.task_feed.R
@@ -15,7 +16,10 @@ class PointsViewHolder(val view: View, val type: PointsType) {
         field = value
         val cardView = view as CardView
         if (value) {
-            cardView.setCardBackgroundColor(view.context.resources.getColor(R.color.green))
+            val value = TypedValue()
+            view.context.theme.resolveAttribute(R.attr.colorPrimary, value, true)
+
+            cardView.setCardBackgroundColor(value.data)
             pointsTextView.setTextColor(view.context.resources.getColor(R.color.white))
             pointTypeTextView.setTextColor(view.context.resources.getColor(R.color.white))
             unitsTextView.setTextColor(view.context.resources.getColor(R.color.white))
@@ -43,11 +47,4 @@ class PointsViewHolder(val view: View, val type: PointsType) {
 
 enum class PointsType {
     remaining, finished;
-
-    override fun toString(): String {
-        return when (this) {
-            remaining -> "remaining"
-            finished -> "finished"
-        }
-    }
 }

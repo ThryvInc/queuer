@@ -10,7 +10,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" >
         <EditText
-                android:id="@+id/task"
+                android:id="@+id/taskNameEditText"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textCapSentences"
@@ -21,12 +21,12 @@
             <requestFocus />
         </EditText>
         <EditText
-            android:id="@+id/position"
+            android:id="@+id/pointsEditText"
             android:layout_width="50dp"
             android:layout_height="wrap_content"
             android:inputType="number"
-            android:layout_below="@+id/task"
-            android:text="0"/>
+            android:layout_below="@+id/taskNameEditText"
+            android:hint="#"/>
     </RelativeLayout>
 
 </ScrollView>

@@ -53,7 +53,7 @@ class SprintProjectsFragment: RecyclerViewFragment() {
         }
         viewModel?.sprintProjectsLiveData?.observeForever {
             projects.removeAll(projects)
-            val sprintProjects = it
+            val sprintProjects = it?.sortedBy { it.createdAt }
             if (sprintProjects != null) {
                 projects.addAll(sprintProjects)
                 adapter?.updateArray(projects)

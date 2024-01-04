@@ -11,7 +11,6 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import com.android.volley.Response
@@ -21,10 +20,7 @@ import com.rndapp.task_feed.activities.ChooserActivity
 import com.rndapp.task_feed.activities.ProjectActivity
 import com.rndapp.task_feed.activities.SprintProjectActivity
 import com.rndapp.task_feed.adapters.SprintProjectTaskAdapter
-import com.rndapp.task_feed.adapters.TaskAdapter
 import com.rndapp.task_feed.api.*
-import com.rndapp.task_feed.interfaces.TaskDisplayer
-import com.rndapp.task_feed.listeners.OnTaskClickedListener
 import com.rndapp.task_feed.models.*
 import com.rndapp.task_feed.view_models.SprintActivityViewModel
 import com.rndapp.task_feed.views.PointsType
@@ -59,18 +55,17 @@ class SprintProjectFragment: RecyclerViewFragment() {
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
             val position = viewHolder.adapterPosition
-            val task = adapter?.sprintProjectTasks?.get(position)?.task
+            val task = if (leftPointsHolder?.isSelected == true) sprintProject?.unfinishedSprintTasks()?.get(position)?.task else sprintProject?.finishedSprintTasks()?.get(position)?.task
             if (task != null) {
+                task.isFinished = !task.isFinished
                 val request = ToggleFinishedTaskRequest(task, Response.Listener {
-
+                    refresh()
                 }, Response.ErrorListener { error ->
                     error.printStackTrace()
                 })
                 VolleyManager.queue?.add(request)
+                setupTasks()
             }
-            task?.isFinished = true
-            adapter?.updateArray(adapter!!.sprintProjectTasks.filter { it.task != null }.filter { !(it.task?.isFinished ?: true) })
-            adapter?.notifyDataSetChanged()
         }
     }
 
@@ -154,10 +149,10 @@ class SprintProjectFragment: RecyclerViewFragment() {
     override fun refresh() {
         viewModel?.refreshSprintProjects()
 
-        refreshLayout.isRefreshing = true
+        refreshLayout?.isRefreshing = true
         val request = SprintProjectRequest(sprintProject?.id ?: 0, Response.Listener {
             this.sprintProject = it
-            refreshLayout.isRefreshing = false
+            refreshLayout?.isRefreshing = false
         }, Response.ErrorListener { error ->
             error.printStackTrace()
             refreshLayout.isRefreshing = false
@@ -230,8 +225,8 @@ class SprintProjectFragment: RecyclerViewFragment() {
 
         if (layout == null) return
 
-        val taskTitle = layout.findViewById<EditText>(R.id.task)
-        val taskPos = layout.findViewById<EditText>(R.id.position)
+        val taskTitle = layout.findViewById<EditText>(R.id.taskNameEditText)
+        val taskPos = layout.findViewById<EditText>(R.id.pointsEditText)
 
         // set dialog message
         alertDialogBuilder
@@ -267,8 +262,8 @@ class SprintProjectFragment: RecyclerViewFragment() {
         val layout = activity?.layoutInflater?.inflate(R.layout.new_task, null)
         if (layout == null) return
 
-        val taskTitle = layout.findViewById<EditText>(R.id.task)
-        val taskPos = layout.findViewById<EditText>(R.id.position)
+        val taskTitle = layout.findViewById<EditText>(R.id.taskNameEditText)
+        val taskPos = layout.findViewById<EditText>(R.id.pointsEditText)
 
         //populate text fields
         taskTitle.setText(task.name)
